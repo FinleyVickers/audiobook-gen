@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audiobook Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e334d;
+      --accent: #6c63ff;
+      --accent-hover: #5a52e0;
+      --text: #e8eaf0;
+      --muted: #8b90a8;
+      --success: #4caf87;
+      --error: #e05c5c;
+      --radius: 10px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #6c63ff, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      width: 100%;
+      max-width: 640px;
+      margin-bottom: 1.25rem;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 0.78rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    input[type="text"], input[type="password"], select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 0.6rem 0.8rem;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.15s;
+      margin-bottom: 1rem;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: var(--accent);
+      background: rgba(108, 99, 255, 0.05);
+    }
+
+    .upload-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+    .upload-area p {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .upload-area .filename {
+      color: var(--text);
+      font-weight: 500;
+      margin-top: 0.5rem;
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.65rem 1.25rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+
+    button:hover { background: var(--accent-hover); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover { background: var(--border); }
+
+    .btn-success {
+      background: var(--success);
+    }
+    .btn-success:hover { background: #3d9e71; }
+
+    .chapter-list {
+      list-style: none;
+      max-height: 240px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+
+    .chapter-list li {
+      padding: 0.55rem 0.8rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .chapter-list li:hover { background: rgba(255,255,255,0.03); }
+    .chapter-list li:last-child { border-bottom: none; }
+
+    .chapter-list li label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      flex: 1;
+      margin-bottom: 0;
+      color: var(--text);
+      font-size: 0.85rem;
+    }
+
+    .chapter-list li input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .chapter-list .ch-num {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .chapter-list .ch-chunks {
+      color: var(--muted);
+      font-size: 0.75rem;
+      white-space: nowrap;
+      margin-left: 0.5rem;
+    }
+
+    .chapter-select-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .chapter-select-controls span {
+      cursor: pointer;
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    .chapter-select-controls span:hover { color: var(--accent-hover); }
+
+    .cost-badge {
+      display: inline-block;
+      background: rgba(108, 99, 255, 0.15);
+      border: 1px solid rgba(108, 99, 255, 0.4);
+      color: #a78bfa;
+      border-radius: 999px;
+      padding: 0.2rem 0.7rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .progress-bar-wrap {
+      background: var(--surface2);
+      border-radius: 999px;
+      height: 10px;
+      overflow: hidden;
+      margin-bottom: 0.75rem;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #a78bfa);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .status-text {
+      font-size: 0.875rem;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .status-text.error { color: var(--error); }
+    .status-text.success { color: var(--success); }
+
+    .hidden { display: none !important; }
+
+    .toggle-key {
+      font-size: 0.8rem;
+      color: var(--accent);
+      cursor: pointer;
+      text-align: right;
+      margin-bottom: 0.75rem;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Audiobook Generator</h1>
+  <p>Convert any ebook to an M4B audiobook using Mistral Voxtral TTS</p>
+</header>
+
+<!-- Step 1: Config + Upload -->
+<div class="card" id="step-upload">
+  <h2>Configuration</h2>
+
+  <label for="api-key">Mistral API Key</label>
+  <input type="password" id="api-key" placeholder="your-mistral-api-key" autocomplete="off" />
+
+  <label for="voice-select">Voice <span id="voice-status" style="color:var(--muted);font-size:0.75rem;font-weight:400;"></span></label>
+  <select id="voice-select" disabled>
+    <option value="">Enter API key to load voices…</option>
+  </select>
+
+  <h2 style="margin-top:0.5rem">Upload Ebook</h2>
+
+  <div class="upload-area" id="upload-area">
+    <input type="file" id="file-input" accept=".epub" />
+    <div class="upload-icon">📚</div>
+    <p>Drop your <strong>.epub</strong> file here or click to browse</p>
+    <p class="filename hidden" id="selected-filename"></p>
+  </div>
+
+  <button id="upload-btn" onclick="uploadFile()" disabled>Upload & Analyze</button>
+</div>
+
+<!-- Step 2: Chapter preview + generate -->
+<div class="card hidden" id="step-preview">
+  <h2>Book Details</h2>
+  <p id="book-title-label" style="font-weight:600;margin-bottom:0.75rem;font-size:1.05rem;"></p>
+  <div class="cost-badge" id="cost-label"></div>
+  <div class="chapter-select-controls">
+    <span id="selected-count"></span>
+    <span onclick="toggleSelectAll()">Select All / None</span>
+  </div>
+  <ul class="chapter-list" id="chapter-list"></ul>
+  <button id="generate-btn" onclick="startGeneration()">Generate Audiobook</button>
+  <button class="btn-secondary" style="margin-top:0.5rem" onclick="resetAll()">Start Over</button>
+</div>
+
+<!-- Step 3: Progress -->
+<div class="card hidden" id="step-progress">
+  <h2>Generating Audiobook</h2>
+  <p class="status-text" id="progress-chapter">Starting...</p>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-fill"></div>
+  </div>
+  <div class="progress-label">
+    <span id="progress-count">0 / 0 chunks</span>
+    <span id="progress-pct">0%</span>
+  </div>
+</div>
+
+<!-- Step 4: Complete / Error -->
+<div class="card hidden" id="step-done">
+  <h2>Done</h2>
+  <p class="status-text success" id="done-message"></p>
+  <button class="btn-success" id="download-btn" onclick="downloadAudiobook()">Download Audiobook (.m4b)</button>
+  <button class="btn-secondary" style="margin-top:0.75rem" onclick="resetAll()">Convert Another</button>
+</div>
+
+<div class="card hidden" id="step-error">
+  <h2>Error</h2>
+  <p class="status-text error" id="error-message"></p>
+  <button class="btn-secondary" onclick="resetAll()">Try Again</button>
+</div>
+
+<script>
+  let currentJobId = null;
+  let eventSource = null;
+  let voiceLoadTimer = null;
+  let chapterData = [];
+
+  // Restore API key from localStorage
+  const savedKey = localStorage.getItem('mistral_api_key');
+  if (savedKey) {
+    document.getElementById('api-key').value = savedKey;
+  }
+
+  // Load voices on key change (debounced)
+  document.getElementById('api-key').addEventListener('input', e => {
+    const key = e.target.value.trim();
+    localStorage.setItem('mistral_api_key', key);
+    clearTimeout(voiceLoadTimer);
+    if (key.length > 10) {
+      voiceLoadTimer = setTimeout(() => loadVoices(key), 600);
+    }
+  });
+
+  // --- Load voices from Mistral API ---
+  async function loadVoices(apiKey) {
+    const select = document.getElementById('voice-select');
+    const status = document.getElementById('voice-status');
+    if (!apiKey) {
+      select.innerHTML = '<option value="">Enter API key to load voices…</option>';
+      select.disabled = true;
+      status.textContent = '';
+      return;
+    }
+    select.disabled = true;
+    status.textContent = '(loading…)';
+    try {
+      const res = await fetch('/api/voices', {
+        headers: { 'X-Api-Key': apiKey }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        status.textContent = '(error loading voices)';
+        select.innerHTML = '<option value="">Failed to load — check API key</option>';
+        return;
+      }
+      if (!data.voices.length) {
+        select.innerHTML = '<option value="">No voices found</option>';
+        status.textContent = '';
+        return;
+      }
+      select.innerHTML = data.voices.map(v =>
+        `<option value="${v.id}">${v.label}</option>`
+      ).join('');
+      select.disabled = false;
+      status.textContent = `(${data.voices.length} voices)`;
+    } catch {
+      status.textContent = '(network error)';
+      select.innerHTML = '<option value="">Failed to load voices</option>';
+    }
+  }
+
+  // Auto-load if key is already saved
+  if (savedKey && savedKey.length > 10) {
+    loadVoices(savedKey);
+  }
+
+  // --- File input ---
+  const fileInput = document.getElementById('file-input');
+  const uploadArea = document.getElementById('upload-area');
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) {
+      showFilename(fileInput.files[0].name);
+    }
+  });
+
+  uploadArea.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadArea.classList.add('drag-over');
+  });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.epub')) {
+      fileInput.files = e.dataTransfer.files;
+      showFilename(file.name);
+    }
+  });
+
+  function showFilename(name) {
+    const el = document.getElementById('selected-filename');
+    el.textContent = name;
+    el.classList.remove('hidden');
+    document.getElementById('upload-btn').disabled = false;
+  }
+
+  // --- Upload ---
+  async function uploadFile() {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const btn = document.getElementById('upload-btn');
+    btn.disabled = true;
+    btn.textContent = 'Analyzing...';
+
+    const form = new FormData();
+    form.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: form });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.detail || 'Upload failed');
+        btn.disabled = false;
+        btn.textContent = 'Upload & Analyze';
+        return;
+      }
+
+      currentJobId = data.job_id;
+      showPreview(data);
+    } catch (e) {
+      alert('Upload error: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = 'Upload & Analyze';
+    }
+  }
+
+  function showPreview(data) {
+    document.getElementById('step-upload').classList.add('hidden');
+    document.getElementById('step-preview').classList.remove('hidden');
+
+    chapterData = data.chapters;
+    document.getElementById('book-title-label').textContent = data.book_title;
+
+    const list = document.getElementById('chapter-list');
+    list.innerHTML = chapterData.map(ch =>
+      `<li onclick="document.getElementById('ch-${ch.index}').click()">
+        <label onclick="event.stopPropagation()">
+          <input type="checkbox" id="ch-${ch.index}" value="${ch.index}" checked onchange="updateCostBadge()" />
+          <span class="ch-num">${ch.index + 1}.</span>${ch.title}
+        </label>
+        <span class="ch-chunks">${ch.chunks} chunks</span>
+      </li>`
+    ).join('');
+
+    updateCostBadge();
+  }
+
+  function updateCostBadge() {
+    const checked = getSelectedIndices();
+    const selectedChars = chapterData
+      .filter(ch => checked.includes(ch.index))
+      .reduce((sum, ch) => sum + ch.chars, 0);
+    const cost = (selectedChars / 1000) * 0.016;
+    document.getElementById('cost-label').textContent =
+      `~${selectedChars.toLocaleString()} chars · Est. $${cost.toFixed(4)}`;
+    document.getElementById('selected-count').textContent =
+      `${checked.length} of ${chapterData.length} chapters selected`;
+    document.getElementById('generate-btn').disabled = checked.length === 0;
+  }
+
+  function getSelectedIndices() {
+    return Array.from(document.querySelectorAll('#chapter-list input[type="checkbox"]:checked'))
+      .map(cb => parseInt(cb.value));
+  }
+
+  function toggleSelectAll() {
+    const checkboxes = document.querySelectorAll('#chapter-list input[type="checkbox"]');
+    const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+    checkboxes.forEach(cb => cb.checked = !anyChecked);
+    updateCostBadge();
+  }
+
+  // --- Generate ---
+  async function startGeneration() {
+    const apiKey = document.getElementById('api-key').value.trim();
+    if (!apiKey) {
+      document.getElementById('api-key').focus();
+      alert('Please enter your Mistral API key.');
+      return;
+    }
+    localStorage.setItem('mistral_api_key', apiKey);
+
+    const voiceId = document.getElementById('voice-select').value;
+    const btn = document.getElementById('generate-btn');
+    btn.disabled = true;
+    btn.textContent = 'Starting...';
+
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': apiKey,
+        },
+        body: JSON.stringify({
+        job_id: currentJobId,
+        voice_id: voiceId,
+        chapter_indices: getSelectedIndices(),
+      }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.detail || 'Failed to start generation');
+        btn.disabled = false;
+        btn.textContent = 'Generate Audiobook';
+        return;
+      }
+
+      showProgress();
+      startSSE();
+    } catch (e) {
+      alert('Error: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = 'Generate Audiobook';
+    }
+  }
+
+  function showProgress() {
+    document.getElementById('step-preview').classList.add('hidden');
+    document.getElementById('step-progress').classList.remove('hidden');
+  }
+
+  function startSSE() {
+    if (eventSource) eventSource.close();
+    eventSource = new EventSource(`/api/progress/${currentJobId}`);
+
+    eventSource.onmessage = e => {
+      const data = JSON.parse(e.data);
+      handleProgressEvent(data);
+    };
+
+    eventSource.onerror = () => {
+      // SSE reconnects automatically; only show error if job is gone
+    };
+  }
+
+  function handleProgressEvent(data) {
+    if (data.error && !data.status) {
+      showError(data.error);
+      return;
+    }
+
+    const { status, total_chunks, completed_chunks, current_chapter, current_chapter_index, total_chapters } = data;
+
+    // Update progress bar
+    const pct = total_chunks > 0 ? Math.round((completed_chunks / total_chunks) * 100) : 0;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-count').textContent = `${completed_chunks} / ${total_chunks} chunks`;
+    document.getElementById('progress-pct').textContent = pct + '%';
+
+    if (current_chapter) {
+      document.getElementById('progress-chapter').textContent =
+        `Chapter ${current_chapter_index + 1} of ${total_chapters}: ${current_chapter}`;
+    }
+
+    if (status === 'complete') {
+      eventSource && eventSource.close();
+      showDone();
+    } else if (status === 'error') {
+      eventSource && eventSource.close();
+      showError(data.error || 'An unknown error occurred.');
+    }
+  }
+
+  function showDone() {
+    document.getElementById('step-progress').classList.add('hidden');
+    document.getElementById('step-done').classList.remove('hidden');
+    document.getElementById('done-message').textContent = 'Your audiobook is ready!';
+  }
+
+  function downloadAudiobook() {
+    window.location.href = `/api/download/${currentJobId}`;
+  }
+
+  function showError(msg) {
+    document.getElementById('step-progress').classList.add('hidden');
+    document.getElementById('step-preview').classList.add('hidden');
+    document.getElementById('step-error').classList.remove('hidden');
+    document.getElementById('error-message').textContent = msg;
+  }
+
+  function resetAll() {
+    if (eventSource) { eventSource.close(); eventSource = null; }
+    currentJobId = null;
+    chapterData = [];
+    fileInput.value = '';
+    document.getElementById('selected-filename').classList.add('hidden');
+    document.getElementById('upload-btn').disabled = true;
+    document.getElementById('upload-btn').textContent = 'Upload & Analyze';
+    document.getElementById('progress-fill').style.width = '0%';
+    document.getElementById('progress-chapter').textContent = 'Starting...';
+    document.getElementById('step-upload').classList.remove('hidden');
+    document.getElementById('step-preview').classList.add('hidden');
+    document.getElementById('step-progress').classList.add('hidden');
+    document.getElementById('step-done').classList.add('hidden');
+    document.getElementById('step-error').classList.add('hidden');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+ebooklib
+beautifulsoup4
+httpx
+lxml
+python-multipart
