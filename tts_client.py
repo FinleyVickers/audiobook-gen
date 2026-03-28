@@ -18,7 +18,7 @@ _RATE_LIMIT_RPS = 6
 
 # ── Local (mlx-audio) ────────────────────────────────────────────────────────
 
-LOCAL_MODEL_ID = "mlx-community/Voxtral-4B-TTS-2603-4bit"
+LOCAL_MODEL_ID = "mlx-community/Voxtral-4B-TTS-2603-mlx-4bit"
 
 # Preset voices bundled with the Voxtral-4B local model.
 LOCAL_VOICES: list[dict] = [

@@ -51,7 +51,7 @@ Open `http://localhost:8000`.
 1. Select **Local (mlx-audio · Apple Silicon)** in the Mode section
 2. Select a voice — 21 presets across English, French, Hindi, Italian, Japanese, Portuguese, and Chinese
 3. Upload an `.epub`, select chapters, and generate
-4. The Voxtral-4B model (~2.5 GB) downloads automatically on first use from Hugging Face
+4. The model (`mlx-community/Voxtral-4B-TTS-2603-mlx-4bit`, ~2.5 GB) downloads automatically on first use from Hugging Face
 
 > Local mode runs chunks sequentially (MLX doesn't support parallel inference). Expect roughly real-time generation speed (~1× RTF) on an M2 with the 4-bit model.
 
