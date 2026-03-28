@@ -44,10 +44,17 @@ def parse_epub(file_path: str) -> list[Chapter]:
         for tag in soup(["nav", "aside", "script", "style", "head"]):
             tag.decompose()
 
-        # Remove internal anchor links (footnote/endnote citations like <a href="#fn13">13</a>)
+        # Remove internal anchor links that are citation numbers
+        # (<a href="#fn13">13</a> or <a href="#fn13">{13}</a>).
+        # For non-numeric link text (e.g. ordinal suffixes like "th" inside a
+        # <sup><a href="#...">th</a></sup>), unwrap the tag to keep the text.
+        _CITATION_TEXT = re.compile(r"^\{?\[?\d+\]?\}?$")
         for a in soup.find_all("a", href=True):
             if a["href"].startswith("#"):
-                a.decompose()
+                if _CITATION_TEXT.match(a.get_text(strip=True)):
+                    a.decompose()
+                else:
+                    a.unwrap()
 
         # Detect title-like <p> elements (common in Calibre-generated epubs where
         # chapter headings are styled paragraphs, not semantic <h> tags). Walk the
@@ -143,9 +150,14 @@ def _is_boilerplate(text: str) -> bool:
 
 def _clean_text(text: str) -> str:
     # Remove citation markers: {13}, [13], superscript Unicode digits (¹²³ etc.)
+    # Only digits are removed — text like {th} or [nd] is left untouched.
     text = re.sub(r"\{\d+\}", "", text)
     text = re.sub(r"\[\d+\]", "", text)
-    text = re.sub(r"[\u00B2\u00B3\u00B9\u2070-\u2079]+", "", text)
+    # Superscript Unicode digits only (not letters like ⁱ at U+2071).
+    text = re.sub(r"[\u00B2\u00B3\u00B9\u2070\u2074-\u2079]+", "", text)
+    # Reattach ordinal suffixes split by BeautifulSoup's separator=" " when the
+    # suffix lives in a <sup> element: "19 th" → "19th", "21 st" → "21st".
+    text = re.sub(r"(\d)\s+(st|nd|rd|th)\b", r"\1\2", text, flags=re.IGNORECASE)
     # Collapse multiple whitespace/newlines
     text = re.sub(r"\s+", " ", text)
     # Rejoin small-caps / drop-cap artifacts
