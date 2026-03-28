@@ -137,7 +137,7 @@ async def _run(args):
         client = LocalTTSClient(
             model_key=local_model, ref_audio_path=args.ref_audio, instruct=args.instruct,
             speed=args.speed, lang_code=args.lang_code, exaggeration=args.exaggeration,
-            temperature=args.temperature,
+            temperature=args.temperature, style_tags=args.style_tags,
         )
         chunk_ext = "wav"
     else:
@@ -225,6 +225,9 @@ def main():
     parser.add_argument("--temperature", type=float, default=None, metavar="FLOAT",
                         help="Sampling temperature (0 = greedy/deterministic). "
                              "Defaults to 0 for VoiceDesign models to keep voice consistent across chunks.")
+    parser.add_argument("--style-tags", default=None, metavar="TAGS",
+                        help="Inline style tags prepended to each chunk for Fish Audio "
+                             "(e.g. '[calm, warm narrator]' or '[whisper] [slow]')")
     parser.add_argument("--api-key", default=os.environ.get("MISTRAL_API_KEY"),
                         help="Mistral API key (or set MISTRAL_API_KEY env var)")
     parser.add_argument("--chapters", nargs="+", type=int, metavar="N",

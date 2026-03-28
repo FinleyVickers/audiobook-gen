@@ -238,14 +238,14 @@ LOCAL_MODELS: dict[str, dict] = {
         "label":      "Fish Audio S2 Pro — 8-bit  (~6.7 GB)  · voice cloning + inline tags",
         "voice_mode": "ref_audio",
         "voices":     _NO_PRESET_VOICES,
-        "extra_params": ["speed"],
+        "extra_params": ["speed", "style_tags"],
     },
     "fish-s2-pro-bf16": {
         "hf_id":      "mlx-community/fish-audio-s2-pro-bf16",
         "label":      "Fish Audio S2 Pro — bf16  (~10 GB)  · voice cloning + inline tags",
         "voice_mode": "ref_audio",
         "voices":     _NO_PRESET_VOICES,
-        "extra_params": ["speed"],
+        "extra_params": ["speed", "style_tags"],
     },
 }
 
@@ -269,10 +269,15 @@ def _cli_synthesize_chunk(
     exaggeration: float | None = None,
     cfg_weight: float | None = None,
     temperature: float | None = None,
+    style_tags: str | None = None,
 ) -> bytes:
     """Synthesize a single chunk via the mlx_audio CLI subprocess."""
     import sys
     import tempfile
+
+    # Prepend inline style tags for Fish Audio (e.g. "[calm narrator] text…")
+    if style_tags:
+        text = f"{style_tags} {text}"
 
     with tempfile.TemporaryDirectory() as tmpdir:
         cmd = [
@@ -340,6 +345,7 @@ class LocalTTSClient:
         exaggeration: float | None = None,
         cfg_weight: float | None = None,
         temperature: float | None = None,
+        style_tags: str | None = None,
     ):
         info = LOCAL_MODELS.get(model_key, LOCAL_MODELS[LOCAL_MODEL_DEFAULT])
         self._model_id = info["hf_id"]
@@ -354,6 +360,7 @@ class LocalTTSClient:
         if temperature is None and info.get("voice_mode") == "instruct":
             temperature = 0.0
         self._temperature = temperature
+        self._style_tags = style_tags
 
     async def synthesize_chapter(
         self,
@@ -369,7 +376,7 @@ class LocalTTSClient:
                 None, _cli_synthesize_chunk, chunk, voice_id,
                 self._model_id, self._ref_audio_path, self._instruct,
                 self._speed, self._lang_code, self._exaggeration, self._cfg_weight,
-                self._temperature,
+                self._temperature, self._style_tags,
             )
             results.append(audio)
 

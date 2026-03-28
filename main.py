@@ -178,6 +178,7 @@ class GenerateRequest(BaseModel):
     local_exaggeration: float | None = None  # emotion intensity 0–1 (Chatterbox)
     local_cfg_weight: float | None = None    # CFG weight (Chatterbox, default 0.5)
     local_temperature: float | None = None   # sampling temperature (0 = greedy/deterministic)
+    local_style_tags: str | None = None      # inline style tags prepended to text (Fish Audio)
     chapter_indices: list[int] | None = None  # None means all chapters
 
 
@@ -217,7 +218,7 @@ async def generate(
         _run_generation, req.job_id, chapters, req.voice_id, req.mode,
         req.local_model, req.local_ref_audio, req.local_instruct,
         req.local_speed, req.local_lang_code, req.local_exaggeration, req.local_cfg_weight,
-        req.local_temperature, x_api_key, job.book_title,
+        req.local_temperature, req.local_style_tags, x_api_key, job.book_title,
     )
     return {"status": "started"}
 
@@ -235,6 +236,7 @@ async def _run_generation(
     local_exaggeration: float | None,
     local_cfg_weight: float | None,
     local_temperature: float | None,
+    local_style_tags: str | None,
     api_key: str | None,
     book_title: str,
 ):
@@ -251,6 +253,7 @@ async def _run_generation(
             exaggeration=local_exaggeration,
             cfg_weight=local_cfg_weight,
             temperature=local_temperature,
+            style_tags=local_style_tags,
         )
         if mode == "local"
         else TTSClient(api_key=api_key)

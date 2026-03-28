@@ -598,6 +598,13 @@
       <p class="field-note">0 = neutral, 1 = maximum emotion. Higher values may reduce quality.</p>
     </div>
 
+    <!-- Fish Audio inline style tags — hidden by default -->
+    <div class="field hidden" id="local-style-tags-field">
+      <label for="local-style-tags">Narrator Style Tags <span style="font-family:'Courier New',monospace;font-size:0.68rem;color:var(--ink-dim);text-transform:none;letter-spacing:0;">optional · prepended to each chunk</span></label>
+      <input type="text" id="local-style-tags" placeholder="e.g. [calm, warm narrator] or [whisper] [slow]" />
+      <p class="field-note">Fish Audio inline tags: [pause], [whisper], [laughing], [angry], [excited], [sad], [emphasis], or any free-form description.</p>
+    </div>
+
     <!-- Voice cloning (API mode only) -->
     <details id="clone-details" class="hidden">
       <div class="clone-panel">
@@ -816,6 +823,7 @@
     document.getElementById('local-speed-field').classList.toggle('hidden', !extraParams.includes('speed'));
     document.getElementById('local-lang-code-field').classList.toggle('hidden', !extraParams.includes('lang_code'));
     document.getElementById('local-exaggeration-field').classList.toggle('hidden', !extraParams.includes('exaggeration'));
+    document.getElementById('local-style-tags-field').classList.toggle('hidden', !extraParams.includes('style_tags'));
 
     if (voiceMode === 'none') {
       voiceSel.innerHTML = '<option value="">— no voice selection for this model —</option>';
@@ -1048,6 +1056,7 @@
           local_lang_code: document.getElementById('local-lang-code').value || null,
           local_exaggeration: document.getElementById('local-exaggeration-field').classList.contains('hidden') ? null : parseFloat(document.getElementById('local-exaggeration').value),
           local_cfg_weight: null,
+          local_style_tags: document.getElementById('local-style-tags').value.trim() || null,
           chapter_indices: getSelectedIndices(),
         }),
       });
