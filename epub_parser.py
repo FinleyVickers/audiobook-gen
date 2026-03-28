@@ -49,6 +49,26 @@ def parse_epub(file_path: str) -> list[Chapter]:
             if a["href"].startswith("#"):
                 a.decompose()
 
+        # Detect title-like <p> elements (common in Calibre-generated epubs where
+        # chapter headings are styled paragraphs, not semantic <h> tags). Walk the
+        # first few paragraphs: if one is short, contains no sentence-ending
+        # punctuation, and has only inline children, treat it as a heading.
+        _INLINE = {"span", "em", "strong", "a", "b", "i", "u", "sub", "sup", "cite"}
+        for p in soup.find_all("p"):
+            p_text = p.get_text(separator=" ", strip=True)
+            if not p_text:
+                continue  # skip blank spacer paragraphs
+            if len(p_text) > 80 or re.search(r"[.!?]", p_text):
+                break  # reached body text; no title paragraph present
+            # Only inline children — reject if any block element is nested inside
+            if any(getattr(c, "name", None) not in (None, *_INLINE) for c in p.children):
+                break
+            p_text = p_text.rstrip(".!? \t")
+            p.replace_with(f"{p_text}. ")
+            if not title or "/" in title:  # update filename-fallback titles
+                title = p_text
+            break  # only the very first non-empty paragraph can be a title
+
         # Replace heading tags with their text as a sentence so the narrator
         # gets a natural pause before body text begins. Convert Roman numerals
         # within headings to spoken words (including single-letter I/V/X which
