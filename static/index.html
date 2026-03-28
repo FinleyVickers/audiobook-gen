@@ -561,6 +561,13 @@
       <input type="file" id="local-ref-audio" accept="audio/*" style="font-size:0.85rem;color:var(--ink-mid);cursor:pointer;padding:0.3rem 0;" />
     </div>
 
+    <!-- Voice description for Qwen3-TTS VoiceDesign (hidden by default) -->
+    <div class="field hidden" id="local-instruct-field">
+      <label for="local-instruct">Voice Description <span style="font-family:'Courier New',monospace;font-size:0.68rem;color:var(--ink-dim);text-transform:none;letter-spacing:0;">natural language · leave blank for default</span></label>
+      <input type="text" id="local-instruct" placeholder="e.g. A warm, calm male narrator with a slight British accent" />
+      <p class="field-note">Also supports reference audio above for speaker cloning.</p>
+    </div>
+
     <!-- Voice cloning (API mode only) -->
     <details id="clone-details" class="hidden">
       <div class="clone-panel">
@@ -767,8 +774,11 @@
     const modelInfo = _localModels.find(m => m.id === modelKey);
     const voiceMode = modelInfo ? modelInfo.voice_mode : 'none';
 
-    // Show/hide ref-audio upload for cloning models
-    refField.classList.toggle('hidden', voiceMode !== 'ref_audio');
+    const instructField = document.getElementById('local-instruct-field');
+
+    // Show/hide fields based on voice mode
+    refField.classList.toggle('hidden', voiceMode !== 'ref_audio' && voiceMode !== 'instruct');
+    instructField.classList.toggle('hidden', voiceMode !== 'instruct');
 
     if (voiceMode === 'none') {
       voiceSel.innerHTML = '<option value="">— no voice selection for this model —</option>';
@@ -781,6 +791,13 @@
       voiceSel.innerHTML = '<option value="">— use reference audio above —</option>';
       voiceSel.disabled = true;
       status.textContent = '(voice cloning)';
+      return;
+    }
+
+    if (voiceMode === 'instruct') {
+      voiceSel.innerHTML = '<option value="">— describe voice in the field below —</option>';
+      voiceSel.disabled = true;
+      status.textContent = '(voice design)';
       return;
     }
 
@@ -989,6 +1006,7 @@
           mode,
           local_model: document.getElementById('local-model-select').value,
           local_ref_audio: localRefAudioPath,
+          local_instruct: document.getElementById('local-instruct').value.trim() || null,
           chapter_indices: getSelectedIndices(),
         }),
       });

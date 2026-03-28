@@ -134,7 +134,7 @@ async def _run(args):
             except (ValueError, IndexError):
                 local_model = LOCAL_MODEL_DEFAULT
             print(f"Using: {local_model}")
-        client = LocalTTSClient(model_key=local_model, ref_audio_path=args.ref_audio)
+        client = LocalTTSClient(model_key=local_model, ref_audio_path=args.ref_audio, instruct=args.instruct)
         chunk_ext = "wav"
     else:
         if not args.api_key:
@@ -208,6 +208,9 @@ def main():
                              "Omit to be prompted interactively. Use --list-voices to see all options.")
     parser.add_argument("--ref-audio", default=None, metavar="PATH",
                         help="Reference audio file for voice-cloning local models (csm-1b, chatterbox, etc.)")
+    parser.add_argument("--instruct", default=None, metavar="TEXT",
+                        help="Natural-language voice description for Qwen3-TTS VoiceDesign "
+                             "(e.g. 'A warm, calm male narrator with a slight British accent')")
     parser.add_argument("--api-key", default=os.environ.get("MISTRAL_API_KEY"),
                         help="Mistral API key (or set MISTRAL_API_KEY env var)")
     parser.add_argument("--chapters", nargs="+", type=int, metavar="N",

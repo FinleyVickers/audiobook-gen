@@ -166,7 +166,8 @@ class GenerateRequest(BaseModel):
     voice_id: str
     mode: str = "api"  # "api" or "local"
     local_model: str = LOCAL_MODEL_DEFAULT
-    local_ref_audio: str | None = None  # path to reference audio for cloning models
+    local_ref_audio: str | None = None   # path to reference audio for cloning models
+    local_instruct: str | None = None    # voice description for Qwen3-TTS VoiceDesign
     chapter_indices: list[int] | None = None  # None means all chapters
 
 
@@ -204,7 +205,7 @@ async def generate(
     update_progress(req.job_id, status="processing", total_chunks=total_chunks, total_chapters=len(chapters))
     background_tasks.add_task(
         _run_generation, req.job_id, chapters, req.voice_id, req.mode,
-        req.local_model, req.local_ref_audio, x_api_key, job.book_title,
+        req.local_model, req.local_ref_audio, req.local_instruct, x_api_key, job.book_title,
     )
     return {"status": "started"}
 
@@ -216,6 +217,7 @@ async def _run_generation(
     mode: str,
     local_model: str,
     local_ref_audio: str | None,
+    local_instruct: str | None,
     api_key: str | None,
     book_title: str,
 ):
@@ -223,7 +225,11 @@ async def _run_generation(
     workdir.mkdir(parents=True, exist_ok=True)
 
     client = (
-        LocalTTSClient(model_key=local_model, ref_audio_path=local_ref_audio)
+        LocalTTSClient(
+            model_key=local_model,
+            ref_audio_path=local_ref_audio,
+            instruct=local_instruct,
+        )
         if mode == "local"
         else TTSClient(api_key=api_key)
     )

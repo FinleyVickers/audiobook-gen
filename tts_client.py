@@ -59,6 +59,16 @@ _KOKORO_VOICES: list[dict] = [
 
 # Models that use reference audio for voice cloning have no preset voices.
 # Passing voice_id="" to the CLI omits --voice so the model uses its default.
+_QWEN3_CUSTOM_VOICES: list[dict] = [
+    {"id": "Vivian",    "label": "Vivian — ZH Female"},
+    {"id": "Serena",    "label": "Serena — ZH Female"},
+    {"id": "Uncle_Fu",  "label": "Uncle Fu — ZH Male"},
+    {"id": "Dylan",     "label": "Dylan — ZH Male"},
+    {"id": "Eric",      "label": "Eric — ZH Male"},
+    {"id": "Ryan",      "label": "Ryan — EN Male"},
+    {"id": "Aiden",     "label": "Aiden — EN Male"},
+]
+
 _NO_PRESET_VOICES: list[dict] = []
 
 # Registry of all supported local models.
@@ -128,9 +138,18 @@ LOCAL_MODELS: dict[str, dict] = {
     },
     "qwen3-tts": {
         "hf_id":      "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-bf16",
-        "label":      "Qwen3-TTS 1.7B — bf16  (~3.4 GB)  · voice cloning",
-        "voice_mode": "ref_audio",
+        "label":      "Qwen3-TTS 1.7B VoiceDesign — bf16  (~3.4 GB)  · instruct",
+        # voice_mode "instruct": user provides a natural-language voice description
+        # via --instruct rather than picking a preset name or uploading audio.
+        # Also supports --ref_audio for speaker cloning.
+        "voice_mode": "instruct",
         "voices":     _NO_PRESET_VOICES,
+    },
+    "qwen3-tts-custom": {
+        "hf_id":      "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-bf16",
+        "label":      "Qwen3-TTS 1.7B CustomVoice — bf16  (~3.4 GB)  · preset voices",
+        "voice_mode": "preset",
+        "voices":     _QWEN3_CUSTOM_VOICES,
     },
     "ming-omni-0.5b": {
         "hf_id":      "mlx-community/Ming-omni-tts-0.5B-bf16",
@@ -154,6 +173,7 @@ def _cli_synthesize_chunk(
     voice_id: str,
     model_id: str,
     ref_audio_path: str | None = None,
+    instruct: str | None = None,
 ) -> bytes:
     """Synthesize a single chunk via the mlx_audio CLI subprocess."""
     import sys
@@ -174,6 +194,9 @@ def _cli_synthesize_chunk(
         # Reference audio for voice-cloning models (optional)
         if ref_audio_path:
             cmd += ["--ref_audio", ref_audio_path]
+        # Natural-language voice description for Qwen3-TTS VoiceDesign (optional)
+        if instruct:
+            cmd += ["--instruct", instruct]
         result = subprocess.run(cmd, capture_output=False)
         if result.returncode != 0:
             raise RuntimeError(f"mlx_audio CLI exited with code {result.returncode}")
@@ -196,10 +219,16 @@ class LocalTTSClient:
     ref_audio_path: optional path to a reference audio file for voice-cloning models
     """
 
-    def __init__(self, model_key: str = LOCAL_MODEL_DEFAULT, ref_audio_path: str | None = None):
+    def __init__(
+        self,
+        model_key: str = LOCAL_MODEL_DEFAULT,
+        ref_audio_path: str | None = None,
+        instruct: str | None = None,
+    ):
         info = LOCAL_MODELS.get(model_key, LOCAL_MODELS[LOCAL_MODEL_DEFAULT])
         self._model_id = info["hf_id"]
         self._ref_audio_path = ref_audio_path
+        self._instruct = instruct
 
     async def synthesize_chapter(
         self,
@@ -213,7 +242,7 @@ class LocalTTSClient:
             logger.info("Local TTS: chunk %d/%d (%d chars)", i + 1, len(chunks), len(chunk))
             audio = await loop.run_in_executor(
                 None, _cli_synthesize_chunk, chunk, voice_id,
-                self._model_id, self._ref_audio_path,
+                self._model_id, self._ref_audio_path, self._instruct,
             )
             results.append(audio)
 
