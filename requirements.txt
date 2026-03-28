@@ -7,5 +7,5 @@ httpx
 lxml
 python-multipart
 # Optional: local inference on Apple Silicon (requires macOS + MLX)
-# mlx-audio
-# soundfile
+mlx-audio
+soundfile
