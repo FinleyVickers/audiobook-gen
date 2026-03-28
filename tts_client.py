@@ -22,27 +22,11 @@ LOCAL_MODEL_ID = "mlx-community/Voxtral-4B-TTS-2603-mlx-4bit"
 
 # Preset voices bundled with the Voxtral-4B local model.
 LOCAL_VOICES: list[dict] = [
-    {"id": "af_bella",    "label": "Bella — EN — Female"},
-    {"id": "af_nicole",   "label": "Nicole — EN — Female"},
-    {"id": "af_sarah",    "label": "Sarah — EN — Female"},
-    {"id": "af_sky",      "label": "Sky — EN — Female"},
-    {"id": "am_adam",     "label": "Adam — EN — Male"},
-    {"id": "am_michael",  "label": "Michael — EN — Male"},
-    {"id": "bf_emma",     "label": "Emma — EN-GB — Female"},
-    {"id": "bf_isabella", "label": "Isabella — EN-GB — Female"},
-    {"id": "bm_george",   "label": "George — EN-GB — Male"},
-    {"id": "bm_lewis",    "label": "Lewis — EN-GB — Male"},
-    {"id": "ff_siwis",    "label": "Siwis — FR — Female"},
-    {"id": "hf_alpha",    "label": "Alpha — HI — Female"},
-    {"id": "hm_omega",    "label": "Omega — HI — Male"},
-    {"id": "if_sara",     "label": "Sara — IT — Female"},
-    {"id": "im_nicola",   "label": "Nicola — IT — Male"},
-    {"id": "jf_alpha",    "label": "Alpha — JA — Female"},
-    {"id": "jm_kumo",     "label": "Kumo — JA — Male"},
-    {"id": "pf_dora",     "label": "Dora — PT — Female"},
-    {"id": "pm_alex",     "label": "Alex — PT — Male"},
-    {"id": "zf_xiaobei",  "label": "Xiaobei — ZH — Female"},
-    {"id": "zm_yunjian",  "label": "Yunjian — ZH — Male"},
+    {"id": "casual_male",     "label": "Casual Male — EN"},
+    {"id": "casual_female",   "label": "Casual Female — EN"},
+    {"id": "cheerful_female", "label": "Cheerful Female — EN"},
+    {"id": "neutral_male",    "label": "Neutral Male — EN"},
+    {"id": "neutral_female",  "label": "Neutral Female — EN"},
 ]
 
 # Module-level singleton — loaded once, reused across all requests.
@@ -71,8 +55,8 @@ def _load_and_synthesize(text: str, voice_id: str) -> bytes:
         _local_model = load(LOCAL_MODEL_ID)
 
     parts: list[np.ndarray] = []
-    for segment in _local_model.generate(text=text, voice=voice_id):
-        arr = np.asarray(segment).flatten()
+    for result in _local_model.generate(text=text, voice=voice_id):
+        arr = np.asarray(result.audio).flatten()
         if arr.size:
             parts.append(arr)
 

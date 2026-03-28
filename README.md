@@ -49,7 +49,7 @@ Open `http://localhost:8000`.
 ### Local Mode
 
 1. Select **Local (mlx-audio · Apple Silicon)** in the Mode section
-2. Select a voice — 21 presets across English, French, Hindi, Italian, Japanese, Portuguese, and Chinese
+2. Select a voice — 20 presets across 9 languages including English, French, Spanish, German, Italian, Portuguese, Dutch, Arabic, and Hindi
 3. Upload an `.epub`, select chapters, and generate
 4. The model (`mlx-community/Voxtral-4B-TTS-2603-mlx-4bit`, ~2.5 GB) downloads automatically on first use from Hugging Face
 
