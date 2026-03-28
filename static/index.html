@@ -683,8 +683,8 @@
 
   function onModeChange() {
     const mode = getMode();
-    document.getElementById('api-key-field').style.display = mode === 'api' ? '' : 'none';
-    document.getElementById('local-model-field').style.display = mode === 'local' ? '' : 'none';
+    document.getElementById('api-key-field').classList.toggle('hidden', mode !== 'api');
+    document.getElementById('local-model-field').classList.toggle('hidden', mode !== 'local');
     const cloneDetails = document.getElementById('clone-details');
     if (mode === 'api') {
       cloneDetails.classList.remove('hidden');
