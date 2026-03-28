@@ -137,6 +137,7 @@ async def _run(args):
         client = LocalTTSClient(
             model_key=local_model, ref_audio_path=args.ref_audio, instruct=args.instruct,
             speed=args.speed, lang_code=args.lang_code, exaggeration=args.exaggeration,
+            temperature=args.temperature,
         )
         chunk_ext = "wav"
     else:
@@ -221,6 +222,9 @@ def main():
                              "h=HI, i=IT, j=JA, p=PT, z=ZH). Auto-detected from voice ID if omitted.")
     parser.add_argument("--exaggeration", type=float, default=None, metavar="FLOAT",
                         help="Emotion exaggeration 0.0–1.0 for Chatterbox (default: 0.5)")
+    parser.add_argument("--temperature", type=float, default=None, metavar="FLOAT",
+                        help="Sampling temperature (0 = greedy/deterministic). "
+                             "Defaults to 0 for VoiceDesign models to keep voice consistent across chunks.")
     parser.add_argument("--api-key", default=os.environ.get("MISTRAL_API_KEY"),
                         help="Mistral API key (or set MISTRAL_API_KEY env var)")
     parser.add_argument("--chapters", nargs="+", type=int, metavar="N",

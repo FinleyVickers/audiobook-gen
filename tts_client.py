@@ -203,9 +203,10 @@ LOCAL_MODELS: dict[str, dict] = {
     },
     "qwen3-tts-custom": {
         "hf_id":      "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-bf16",
-        "label":      "Qwen3-TTS 1.7B CustomVoice — bf16  (~3.4 GB)  · preset voices",
+        "label":      "Qwen3-TTS 1.7B CustomVoice — bf16  (~3.4 GB)  · preset + emotion",
         "voice_mode": "preset",
         "voices":     _QWEN3_CUSTOM_VOICES,
+        "extra_params": ["instruct"],
     },
     "qwen3-tts-base": {
         "hf_id":      "mlx-community/Qwen3-TTS-12Hz-1.7B-bf16",
@@ -221,15 +222,30 @@ LOCAL_MODELS: dict[str, dict] = {
     },
     "qwen3-tts-0.6b-custom": {
         "hf_id":      "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-bf16",
-        "label":      "Qwen3-TTS 0.6B CustomVoice — bf16  (~1.2 GB)  · preset voices",
+        "label":      "Qwen3-TTS 0.6B CustomVoice — bf16  (~1.2 GB)  · preset + emotion",
         "voice_mode": "preset",
         "voices":     _QWEN3_CUSTOM_VOICES,
+        "extra_params": ["instruct"],
     },
     "ming-omni-0.5b": {
         "hf_id":      "mlx-community/Ming-omni-tts-0.5B-bf16",
         "label":      "Ming Omni 0.5B — bf16  (~1.0 GB)  · voice cloning",
         "voice_mode": "ref_audio",
         "voices":     _NO_PRESET_VOICES,
+    },
+    "fish-s2-pro-8bit": {
+        "hf_id":      "mlx-community/fish-audio-s2-pro-8bit",
+        "label":      "Fish Audio S2 Pro — 8-bit  (~6.7 GB)  · voice cloning + inline tags",
+        "voice_mode": "ref_audio",
+        "voices":     _NO_PRESET_VOICES,
+        "extra_params": ["speed"],
+    },
+    "fish-s2-pro-bf16": {
+        "hf_id":      "mlx-community/fish-audio-s2-pro-bf16",
+        "label":      "Fish Audio S2 Pro — bf16  (~10 GB)  · voice cloning + inline tags",
+        "voice_mode": "ref_audio",
+        "voices":     _NO_PRESET_VOICES,
+        "extra_params": ["speed"],
     },
 }
 
@@ -252,6 +268,7 @@ def _cli_synthesize_chunk(
     lang_code: str | None = None,
     exaggeration: float | None = None,
     cfg_weight: float | None = None,
+    temperature: float | None = None,
 ) -> bytes:
     """Synthesize a single chunk via the mlx_audio CLI subprocess."""
     import sys
@@ -287,6 +304,9 @@ def _cli_synthesize_chunk(
         # Chatterbox CFG weight
         if cfg_weight is not None:
             cmd += ["--cfg_weight", str(cfg_weight)]
+        # Temperature for sampling (0 = greedy/deterministic)
+        if temperature is not None:
+            cmd += ["--temperature", str(temperature)]
 
         result = subprocess.run(cmd, capture_output=False)
         if result.returncode != 0:
@@ -319,6 +339,7 @@ class LocalTTSClient:
         lang_code: str | None = None,
         exaggeration: float | None = None,
         cfg_weight: float | None = None,
+        temperature: float | None = None,
     ):
         info = LOCAL_MODELS.get(model_key, LOCAL_MODELS[LOCAL_MODEL_DEFAULT])
         self._model_id = info["hf_id"]
@@ -328,6 +349,11 @@ class LocalTTSClient:
         self._lang_code = lang_code
         self._exaggeration = exaggeration
         self._cfg_weight = cfg_weight
+        # Default to temperature=0 (greedy) for instruct/VoiceDesign models
+        # so the voice description resolves to the same speaker every chunk.
+        if temperature is None and info.get("voice_mode") == "instruct":
+            temperature = 0.0
+        self._temperature = temperature
 
     async def synthesize_chapter(
         self,
@@ -343,6 +369,7 @@ class LocalTTSClient:
                 None, _cli_synthesize_chunk, chunk, voice_id,
                 self._model_id, self._ref_audio_path, self._instruct,
                 self._speed, self._lang_code, self._exaggeration, self._cfg_weight,
+                self._temperature,
             )
             results.append(audio)
 

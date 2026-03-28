@@ -9,7 +9,7 @@ Convert epub ebooks to M4B audiobooks using [Mistral Voxtral TTS](https://docs.m
 - Real-time progress tracking via SSE
 - Chapter markers navigable in Apple Books, VLC, etc.
 - **API mode**: 20+ voices fetched live from Mistral, cost estimate shown upfront, voice cloning via reference audio upload
-- **Local mode**: 16 models from the mlx-audio library — preset-voice models (Voxtral, Kokoro, Qwen3 CustomVoice), voice-cloning models (CSM, Chatterbox, Spark, Dia, OuteTTS, Qwen3, Ming Omni), and lightweight fast models (Soprano)
+- **Local mode**: 18 models from the mlx-audio library — preset-voice models (Voxtral, Kokoro, Qwen3 CustomVoice), voice-cloning models (CSM, Chatterbox, Spark, Dia, OuteTTS, Qwen3, Ming Omni), and lightweight fast models (Soprano)
 - Dark mode
 
 ## Requirements
@@ -104,6 +104,8 @@ uv run python cli.py book.epub --mode local --local-model chatterbox --ref-audio
 | Qwen3-TTS 0.6B Base | ~1.2 GB | voice cloning | |
 | Qwen3-TTS 0.6B CustomVoice | ~1.2 GB | 7 presets (ZH, EN) | |
 | Ming Omni 0.5B | ~1.0 GB | voice cloning | |
+| Fish Audio S2 Pro — 8-bit | ~6.7 GB | voice cloning + inline tags | speed |
+| Fish Audio S2 Pro — bf16 | ~10 GB | voice cloning + inline tags | speed |
 
 > Local mode runs chunks sequentially (MLX doesn't support parallel inference). Expect roughly real-time generation speed (~1× RTF).
 
