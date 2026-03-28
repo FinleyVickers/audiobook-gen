@@ -135,7 +135,8 @@ async def _run(args):
                 local_model = LOCAL_MODEL_DEFAULT
             print(f"Using: {local_model}")
         client = LocalTTSClient(
-            model_key=local_model, ref_audio_path=args.ref_audio, instruct=args.instruct,
+            model_key=local_model, ref_audio_path=args.ref_audio,
+            ref_text=args.ref_text, instruct=args.instruct,
             speed=args.speed, lang_code=args.lang_code, exaggeration=args.exaggeration,
             temperature=args.temperature, style_tags=args.style_tags,
         )
@@ -212,6 +213,9 @@ def main():
                              "Omit to be prompted interactively. Use --list-voices to see all options.")
     parser.add_argument("--ref-audio", default=None, metavar="PATH",
                         help="Reference audio file for voice-cloning local models (csm-1b, chatterbox, etc.)")
+    parser.add_argument("--ref-text", default=None, metavar="TEXT",
+                        help="Transcript of the reference audio (skips automatic transcription). "
+                             "If omitted and --ref-audio is provided, audio is transcribed once upfront.")
     parser.add_argument("--instruct", default=None, metavar="TEXT",
                         help="Natural-language voice description for Qwen3-TTS VoiceDesign "
                              "(e.g. 'A warm, calm male narrator with a slight British accent')")

@@ -258,11 +258,32 @@ LOCAL_VOICES: list[dict] = LOCAL_MODELS[LOCAL_MODEL_DEFAULT]["voices"]
 _MIRROR_DIR = Path(__file__).parent / "local_audio_output"
 
 
+def _transcribe_ref_audio(ref_audio_path: str, stt_model: str = "mlx-community/whisper-large-v3-turbo") -> str:
+    """Transcribe reference audio once using mlx-audio's STT. Returns the transcript text."""
+    import sys
+    logger.info("Transcribing reference audio: %s", ref_audio_path)
+    result = subprocess.run(
+        [sys.executable, "-c",
+         "import mlx_audio.stt as stt; "
+         f"model = stt.load('{stt_model}'); "
+         f"result = stt.transcribe(model, '{ref_audio_path}'); "
+         "print(result.get('text', '').strip())"],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        logger.warning("STT transcription failed: %s", result.stderr.strip())
+        return ""
+    transcript = result.stdout.strip()
+    logger.info("Reference audio transcript: %r", transcript[:200])
+    return transcript
+
+
 def _cli_synthesize_chunk(
     text: str,
     voice_id: str,
     model_id: str,
     ref_audio_path: str | None = None,
+    ref_text: str | None = None,
     instruct: str | None = None,
     speed: float | None = None,
     lang_code: str | None = None,
@@ -294,6 +315,9 @@ def _cli_synthesize_chunk(
         # Reference audio for voice-cloning models (optional)
         if ref_audio_path:
             cmd += ["--ref_audio", ref_audio_path]
+        # Pre-computed transcript of reference audio (skips per-chunk STT)
+        if ref_text:
+            cmd += ["--ref_text", ref_text]
         # Natural-language voice description for Qwen3-TTS VoiceDesign (optional)
         if instruct:
             cmd += ["--instruct", instruct]
@@ -339,6 +363,7 @@ class LocalTTSClient:
         self,
         model_key: str = LOCAL_MODEL_DEFAULT,
         ref_audio_path: str | None = None,
+        ref_text: str | None = None,
         instruct: str | None = None,
         speed: float | None = None,
         lang_code: str | None = None,
@@ -350,6 +375,10 @@ class LocalTTSClient:
         info = LOCAL_MODELS.get(model_key, LOCAL_MODELS[LOCAL_MODEL_DEFAULT])
         self._model_id = info["hf_id"]
         self._ref_audio_path = ref_audio_path
+        # Transcribe reference audio once upfront if ref_text not provided
+        if ref_audio_path and not ref_text:
+            ref_text = _transcribe_ref_audio(ref_audio_path)
+        self._ref_text = ref_text or None
         self._instruct = instruct
         self._speed = speed
         self._lang_code = lang_code
@@ -374,7 +403,7 @@ class LocalTTSClient:
             logger.info("Local TTS: chunk %d/%d (%d chars)", i + 1, len(chunks), len(chunk))
             audio = await loop.run_in_executor(
                 None, _cli_synthesize_chunk, chunk, voice_id,
-                self._model_id, self._ref_audio_path, self._instruct,
+                self._model_id, self._ref_audio_path, self._ref_text, self._instruct,
                 self._speed, self._lang_code, self._exaggeration, self._cfg_weight,
                 self._temperature, self._style_tags,
             )

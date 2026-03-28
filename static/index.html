@@ -561,6 +561,13 @@
       <input type="file" id="local-ref-audio" accept="audio/*" style="font-size:0.85rem;color:var(--ink-mid);cursor:pointer;padding:0.3rem 0;" />
     </div>
 
+    <!-- Ref-text for reference audio (hidden by default, shown alongside ref-audio) -->
+    <div class="field hidden" id="local-ref-text-field">
+      <label for="local-ref-text">Reference Transcript <span style="font-family:'Courier New',monospace;font-size:0.68rem;color:var(--ink-dim);text-transform:none;letter-spacing:0;">optional · what the speaker says in the reference audio</span></label>
+      <input type="text" id="local-ref-text" placeholder="Leave blank to auto-transcribe (slower on first chunk)" />
+      <p class="field-note">Providing the transcript skips the automatic transcription step and speeds up generation.</p>
+    </div>
+
     <!-- Voice/emotion description for Qwen3-TTS (hidden by default) -->
     <div class="field hidden" id="local-instruct-field">
       <label for="local-instruct">Voice / Emotion Description <span style="font-family:'Courier New',monospace;font-size:0.68rem;color:var(--ink-dim);text-transform:none;letter-spacing:0;">natural language · leave blank for default</span></label>
@@ -815,7 +822,9 @@
     const extraParams = modelInfo ? (modelInfo.extra_params || []) : [];
 
     // Show/hide fields based on voice mode and extra params
-    refField.classList.toggle('hidden', voiceMode !== 'ref_audio' && voiceMode !== 'instruct');
+    const showRef = voiceMode === 'ref_audio' || voiceMode === 'instruct';
+    refField.classList.toggle('hidden', !showRef);
+    document.getElementById('local-ref-text-field').classList.toggle('hidden', !showRef);
     const showInstruct = voiceMode === 'instruct' || extraParams.includes('instruct');
     instructField.classList.toggle('hidden', !showInstruct);
 
@@ -1051,6 +1060,7 @@
           mode,
           local_model: document.getElementById('local-model-select').value,
           local_ref_audio: localRefAudioPath,
+          local_ref_text: document.getElementById('local-ref-text').value.trim() || null,
           local_instruct: document.getElementById('local-instruct').value.trim() || null,
           local_speed: parseFloat(document.getElementById('local-speed').value) || null,
           local_lang_code: document.getElementById('local-lang-code').value || null,

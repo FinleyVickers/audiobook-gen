@@ -172,6 +172,7 @@ class GenerateRequest(BaseModel):
     mode: str = "api"  # "api" or "local"
     local_model: str = LOCAL_MODEL_DEFAULT
     local_ref_audio: str | None = None   # path to reference audio for cloning models
+    local_ref_text: str | None = None    # transcript of reference audio (skips auto-transcription)
     local_instruct: str | None = None    # voice description for Qwen3-TTS VoiceDesign
     local_speed: float | None = None     # speech speed multiplier (Kokoro, etc.)
     local_lang_code: str | None = None   # language code override (Kokoro: a=US, b=GB, etc.)
@@ -216,7 +217,7 @@ async def generate(
     update_progress(req.job_id, status="processing", total_chunks=total_chunks, total_chapters=len(chapters))
     background_tasks.add_task(
         _run_generation, req.job_id, chapters, req.voice_id, req.mode,
-        req.local_model, req.local_ref_audio, req.local_instruct,
+        req.local_model, req.local_ref_audio, req.local_ref_text, req.local_instruct,
         req.local_speed, req.local_lang_code, req.local_exaggeration, req.local_cfg_weight,
         req.local_temperature, req.local_style_tags, x_api_key, job.book_title,
     )
@@ -230,6 +231,7 @@ async def _run_generation(
     mode: str,
     local_model: str,
     local_ref_audio: str | None,
+    local_ref_text: str | None,
     local_instruct: str | None,
     local_speed: float | None,
     local_lang_code: str | None,
@@ -247,6 +249,7 @@ async def _run_generation(
         LocalTTSClient(
             model_key=local_model,
             ref_audio_path=local_ref_audio,
+            ref_text=local_ref_text,
             instruct=local_instruct,
             speed=local_speed,
             lang_code=local_lang_code,
