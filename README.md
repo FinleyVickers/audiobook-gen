@@ -53,6 +53,11 @@ Open `http://localhost:8000`.
 3. Upload an `.epub`, select chapters, and generate
 4. The model (`mlx-community/Voxtral-4B-TTS-2603-mlx-4bit`, ~2.5 GB) downloads automatically on first use from Hugging Face
 
+> **Note:** Voxtral support requires mlx-audio to be installed from GitHub (not yet in a PyPI release):
+> ```bash
+> pip install git+https://github.com/Blaizzy/mlx-audio.git soundfile
+> ```
+
 > Local mode runs chunks sequentially (MLX doesn't support parallel inference). Expect roughly real-time generation speed (~1× RTF) on an M2 with the 4-bit model.
 
 ## Pricing (API Mode)

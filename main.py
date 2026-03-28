@@ -19,7 +19,7 @@ from job_manager import (
     progress_stream,
     update_progress,
 )
-from tts_client import LOCAL_VOICES, LocalTTSClient, TTSClient
+from tts_client import LOCAL_MODEL_DEFAULT, LOCAL_MODELS, LOCAL_VOICES, LocalTTSClient, TTSClient
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -39,6 +39,28 @@ async def index():
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
 
 
+@app.post("/api/voices/create")
+async def create_voice(
+    file: UploadFile,
+    name: str = "Custom Voice",
+    x_api_key: str = Header(..., description="Mistral API key"),
+):
+    """Upload a reference audio sample to clone a voice via the Mistral API."""
+    audio_bytes = await file.read()
+    client = TTSClient(api_key=x_api_key)
+    try:
+        voice = await client.create_voice(
+            name=name,
+            audio_bytes=audio_bytes,
+            filename=file.filename or "sample.wav",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to create voice: {e}")
+    finally:
+        await client.close()
+    return voice
+
+
 @app.get("/api/voices")
 async def list_voices(x_api_key: str = Header(..., description="Mistral API key")):
     client = TTSClient(api_key=x_api_key)
@@ -53,7 +75,11 @@ async def list_voices(x_api_key: str = Header(..., description="Mistral API key"
 
 @app.get("/api/local-voices")
 async def list_local_voices():
-    return {"voices": sorted(LOCAL_VOICES, key=lambda v: v["label"])}
+    models = [
+        {"id": k, "label": {"4bit": "4-bit (~2.5 GB)", "6bit": "6-bit (~3.5 GB)", "bf16": "BF16 — unquantized (~8 GB)"}[k]}
+        for k in LOCAL_MODELS
+    ]
+    return {"voices": sorted(LOCAL_VOICES, key=lambda v: v["label"]), "models": models, "default_model": LOCAL_MODEL_DEFAULT}
 
 
 class UploadResponse(BaseModel):
@@ -97,7 +123,7 @@ async def upload_epub(file: UploadFile):
     _epub_cache[job.id] = chapters
 
     chapter_info = [
-        {"index": i, "title": ch.title, "chunks": len(ch.chunks), "chars": len(ch.text)}
+        {"index": i, "title": ch.title, "chunks": len(ch.chunks), "chars": len(ch.text), "boilerplate": ch.boilerplate}
         for i, ch in enumerate(chapters)
     ]
 
@@ -116,6 +142,7 @@ class GenerateRequest(BaseModel):
     job_id: str
     voice_id: str
     mode: str = "api"  # "api" or "local"
+    local_model: str = LOCAL_MODEL_DEFAULT  # "4bit", "6bit", "bf16"
     chapter_indices: list[int] | None = None  # None means all chapters
 
 
@@ -152,7 +179,7 @@ async def generate(
     total_chunks = sum(len(ch.chunks) for ch in chapters)
     update_progress(req.job_id, status="processing", total_chunks=total_chunks, total_chapters=len(chapters))
     background_tasks.add_task(
-        _run_generation, req.job_id, chapters, req.voice_id, req.mode, x_api_key, job.book_title
+        _run_generation, req.job_id, chapters, req.voice_id, req.mode, req.local_model, x_api_key, job.book_title
     )
     return {"status": "started"}
 
@@ -162,13 +189,14 @@ async def _run_generation(
     chapters: list[Chapter],
     voice_id: str,
     mode: str,
+    local_model: str,
     api_key: str | None,
     book_title: str,
 ):
     workdir = _output_dir / job_id
     workdir.mkdir(parents=True, exist_ok=True)
 
-    client = LocalTTSClient() if mode == "local" else TTSClient(api_key=api_key)
+    client = LocalTTSClient(model_key=local_model) if mode == "local" else TTSClient(api_key=api_key)
     chunk_ext = "wav" if mode == "local" else "mp3"
     chapter_data: list[tuple[str, str, float]] = []
 

@@ -2,6 +2,8 @@ import asyncio
 import base64
 import collections
 import logging
+import subprocess
+from pathlib import Path
 from typing import Callable, Awaitable
 
 import httpx
@@ -18,7 +20,13 @@ _RATE_LIMIT_RPS = 6
 
 # ── Local (mlx-audio) ────────────────────────────────────────────────────────
 
-LOCAL_MODEL_ID = "mlx-community/Voxtral-4B-TTS-2603-mlx-4bit"
+LOCAL_MODELS = {
+    "4bit":  "mlx-community/Voxtral-4B-TTS-2603-mlx-4bit",
+    "6bit":  "mlx-community/Voxtral-4B-TTS-2603-mlx-6bit",
+    "bf16":  "mlx-community/Voxtral-4B-TTS-2603-mlx-bf16",
+}
+LOCAL_MODEL_DEFAULT = "6bit"
+_MIRROR_DIR = Path(__file__).parent / "local_audio_output"
 
 # Preset voices bundled with the Voxtral-4B local model.
 LOCAL_VOICES: list[dict] = [
@@ -27,57 +35,61 @@ LOCAL_VOICES: list[dict] = [
     {"id": "cheerful_female", "label": "Cheerful Female — EN"},
     {"id": "neutral_male",    "label": "Neutral Male — EN"},
     {"id": "neutral_female",  "label": "Neutral Female — EN"},
+    {"id": "pt_male",         "label": "Male — PT"},
+    {"id": "pt_female",       "label": "Female — PT"},
+    {"id": "nl_male",         "label": "Male — NL"},
+    {"id": "nl_female",       "label": "Female — NL"},
+    {"id": "it_male",         "label": "Male — IT"},
+    {"id": "it_female",       "label": "Female — IT"},
+    {"id": "fr_male",         "label": "Male — FR"},
+    {"id": "fr_female",       "label": "Female — FR"},
+    {"id": "es_male",         "label": "Male — ES"},
+    {"id": "es_female",       "label": "Female — ES"},
+    {"id": "de_male",         "label": "Male — DE"},
+    {"id": "de_female",       "label": "Female — DE"},
+    {"id": "ar_male",         "label": "Male — AR"},
+    {"id": "hi_male",         "label": "Male — HI"},
+    {"id": "hi_female",       "label": "Female — HI"},
 ]
 
-# Module-level singleton — loaded once, reused across all requests.
-_local_model = None
-_local_model_lock: asyncio.Lock | None = None
+def _cli_synthesize_chunk(text: str, voice_id: str, model_id: str) -> bytes:
+    """Synthesize a single chunk via the mlx_audio CLI subprocess."""
+    import sys
+    import tempfile
 
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cmd = [
+            sys.executable, "-m", "mlx_audio.tts.generate",
+            "--model", model_id,
+            "--text", text,
+            "--voice", voice_id,
+            "--output_path", tmpdir,
+            "--file_prefix", "chunk",
+            "--audio_format", "wav",
+        ]
+        result = subprocess.run(cmd, capture_output=False)
+        if result.returncode != 0:
+            raise RuntimeError(f"mlx_audio CLI exited with code {result.returncode}")
 
-def _get_lock() -> asyncio.Lock:
-    global _local_model_lock
-    if _local_model_lock is None:
-        _local_model_lock = asyncio.Lock()
-    return _local_model_lock
+        wav_files = sorted(Path(tmpdir).glob("*.wav"))
+        if not wav_files:
+            raise RuntimeError("mlx_audio CLI produced no output files")
 
-
-def _load_and_synthesize(text: str, voice_id: str) -> bytes:
-    """Synchronous: load model (once) and synthesize a WAV chunk."""
-    import io
-
-    import numpy as np
-    import soundfile as sf
-
-    global _local_model
-    if _local_model is None:
-        from mlx_audio.tts.utils import load
-        logger.info("Loading local Voxtral model: %s", LOCAL_MODEL_ID)
-        _local_model = load(LOCAL_MODEL_ID)
-
-    parts: list[np.ndarray] = []
-    for result in _local_model.generate(text=text, voice=voice_id):
-        arr = np.asarray(result.audio).flatten()
-        if arr.size:
-            parts.append(arr)
-
-    audio = np.concatenate(parts).astype(np.float32) if parts else np.zeros(0, dtype=np.float32)
-    buf = io.BytesIO()
-    sf.write(buf, audio, samplerate=24000, format="WAV", subtype="PCM_16")
-    buf.seek(0)
-    return buf.read()
+        return wav_files[0].read_bytes()
 
 
 class LocalTTSClient:
-    """TTS client using mlx-audio for on-device inference (Apple Silicon)."""
+    """TTS client using mlx-audio CLI for on-device inference (Apple Silicon).
 
-    def __init__(self):
-        # Sequential — MLX model is not safe for concurrent inference
-        self._semaphore = asyncio.Semaphore(1)
+    Each chunk is synthesized in its own subprocess to avoid the memory
+    accumulation crash in the Python API, while keeping text short enough
+    that the model produces intelligible output.
 
-    async def synthesize_chunk(self, text: str, voice_id: str) -> bytes:
-        loop = asyncio.get_event_loop()
-        async with _get_lock():
-            return await loop.run_in_executor(None, _load_and_synthesize, text, voice_id)
+    model_key: one of "4bit", "6bit", "bf16"
+    """
+
+    def __init__(self, model_key: str = LOCAL_MODEL_DEFAULT):
+        self._model_id = LOCAL_MODELS.get(model_key, LOCAL_MODELS[LOCAL_MODEL_DEFAULT])
 
     async def synthesize_chapter(
         self,
@@ -86,15 +98,26 @@ class LocalTTSClient:
         on_progress: Callable[[int], Awaitable[None]] | None = None,
     ) -> list[bytes]:
         results: list[bytes] = []
-        for chunk in chunks:
-            audio = await self.synthesize_chunk(chunk, voice_id)
+        loop = asyncio.get_event_loop()
+        for i, chunk in enumerate(chunks):
+            logger.info("Local TTS: chunk %d/%d (%d chars)", i + 1, len(chunks), len(chunk))
+            audio = await loop.run_in_executor(
+                None, _cli_synthesize_chunk, chunk, voice_id, self._model_id
+            )
             results.append(audio)
+
+            # Mirror to project folder for inspection
+            _MIRROR_DIR.mkdir(exist_ok=True)
+            import time
+            mirror_path = _MIRROR_DIR / f"{int(time.time() * 1000)}_chunk{i:04d}_{voice_id}.wav"
+            mirror_path.write_bytes(audio)
+
             if on_progress:
                 await on_progress(1)
         return results
 
     async def close(self):
-        pass  # model is a module-level singleton; keep it alive
+        pass
 
 
 class _RateLimiter:
@@ -132,6 +155,42 @@ class TTSClient:
         self._semaphore = asyncio.Semaphore(max_concurrent)
         self._rate_limiter = _RateLimiter(rate=_RATE_LIMIT_RPS)
         self._client = httpx.AsyncClient(timeout=60.0)
+
+    async def create_voice(
+        self,
+        name: str,
+        audio_bytes: bytes,
+        filename: str = "sample.wav",
+        **metadata,
+    ) -> dict:
+        """Upload a reference audio sample to create a cloned voice.
+
+        Returns the voice dict from the Mistral API (includes ``id`` and ``name``).
+        """
+        import base64 as _b64
+        payload: dict = {
+            "name": name,
+            "sample_audio": _b64.b64encode(audio_bytes).decode(),
+            "sample_filename": filename,
+        }
+        payload.update({k: v for k, v in metadata.items() if v is not None})
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+        response = await self._client.post(
+            MISTRAL_VOICES_URL, json=payload, headers=headers
+        )
+        response.raise_for_status()
+        v = response.json()
+        # Build a label the same way list_voices does
+        parts = [v.get("name", name)]
+        if v.get("languages"):
+            parts.append(", ".join(v["languages"]).upper())
+        if v.get("gender"):
+            parts.append(v["gender"].capitalize())
+        label = " — ".join(parts) if len(parts) > 1 else parts[0]
+        return {"id": v["id"], "label": label, "raw": v}
 
     async def list_voices(self) -> list[dict]:
         """Fetch available voices from the Mistral API. Returns list of {id, label} dicts."""

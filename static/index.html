@@ -456,6 +456,47 @@
     /* ── Utilities ───────────────────────────────────────── */
     .hidden { display: none !important; }
     .mt { margin-top: 0.6rem; }
+
+    /* ── Voice clone panel ───────────────────────────────── */
+    .clone-panel {
+      border: 1px dashed var(--rule);
+      padding: 1.1rem 1.2rem 0.9rem;
+      margin-top: 0.9rem;
+    }
+
+    .clone-panel summary {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--ink-dim);
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+    }
+
+    .clone-panel summary::after {
+      content: ' ↓';
+      font-style: normal;
+    }
+
+    details[open] .clone-panel summary::after {
+      content: ' ↑';
+    }
+
+    .clone-panel .clone-body {
+      margin-top: 0.9rem;
+    }
+
+    .clone-status {
+      font-family: "Courier New", monospace;
+      font-size: 0.72rem;
+      margin-top: 0.45rem;
+      min-height: 1em;
+    }
+
+    .clone-status.ok   { color: var(--success); }
+    .clone-status.err  { color: var(--error); }
+    .clone-status.busy { color: var(--ink-dim); }
   </style>
 </head>
 <body>
@@ -498,6 +539,15 @@
       <input type="password" id="api-key" placeholder="Enter key to load voices…" autocomplete="off" />
     </div>
 
+    <div class="field hidden" id="local-model-field">
+      <label for="local-model-select">Local Model</label>
+      <select id="local-model-select">
+        <option value="6bit">6-bit (~3.5 GB)</option>
+        <option value="4bit">4-bit (~2.5 GB)</option>
+        <option value="bf16">BF16 — unquantized (~8 GB)</option>
+      </select>
+    </div>
+
     <div class="field">
       <label for="voice-select">
         Voice&ensp;<span id="voice-status" style="font-family:'Courier New',monospace;font-size:0.7rem;color:var(--rule);text-transform:none;letter-spacing:0;"></span>
@@ -506,6 +556,25 @@
         <option value="">— enter API key to load voices —</option>
       </select>
     </div>
+
+    <!-- Voice cloning (API mode only) -->
+    <details id="clone-details" class="hidden">
+      <div class="clone-panel">
+        <summary>Clone a narrator voice</summary>
+        <div class="clone-body">
+          <div class="field">
+            <label for="clone-name">Voice name</label>
+            <input type="text" id="clone-name" placeholder="e.g. My Narrator" />
+          </div>
+          <div class="field">
+            <label for="clone-file">Reference audio <span style="font-family:'Courier New',monospace;font-size:0.68rem;color:var(--ink-dim);text-transform:none;letter-spacing:0;">WAV / MP3 / M4A, ≥ 10 s recommended</span></label>
+            <input type="file" id="clone-file" accept="audio/*" style="font-size:0.85rem;color:var(--ink-mid);cursor:pointer;padding:0.3rem 0;" />
+          </div>
+          <button type="button" id="clone-btn" onclick="cloneVoice()" class="btn-secondary" style="width:auto;font-size:0.75rem;padding:0.5rem 1.1rem;" disabled>Create Voice</button>
+          <p class="clone-status" id="clone-status"></p>
+        </div>
+      </div>
+    </details>
 
     <div class="rule">⁂</div>
 
@@ -611,9 +680,10 @@
   function onModeChange() {
     const mode = getMode();
     document.getElementById('api-key-field').style.display = mode === 'api' ? '' : 'none';
-    if (mode === 'local') {
-      loadLocalVoices();
-    } else {
+    document.getElementById('local-model-field').style.display = mode === 'local' ? '' : 'none';
+    const cloneDetails = document.getElementById('clone-details');
+    if (mode === 'api') {
+      cloneDetails.classList.remove('hidden');
       const key = document.getElementById('api-key').value.trim();
       if (key.length > 10) loadVoices(key);
       else {
@@ -622,6 +692,9 @@
         select.disabled = true;
         document.getElementById('voice-status').textContent = '';
       }
+    } else {
+      cloneDetails.classList.add('hidden');
+      loadLocalVoices();
     }
   }
 
@@ -687,12 +760,25 @@
   if (savedKey) document.getElementById('api-key').value = savedKey;
   if (savedKey && savedKey.length > 10) loadVoices(savedKey);
 
+  // Show clone panel when in API mode (initial state)
+  if (getMode() === 'api') {
+    document.getElementById('clone-details').classList.remove('hidden');
+  }
+
   // Load voices on API key change (debounced)
   document.getElementById('api-key').addEventListener('input', e => {
     const key = e.target.value.trim();
     localStorage.setItem('mistral_api_key', key);
     clearTimeout(voiceLoadTimer);
     if (key.length > 10) voiceLoadTimer = setTimeout(() => loadVoices(key), 600);
+  });
+
+  // Enable clone button when audio file is chosen
+  document.getElementById('clone-file').addEventListener('change', () => {
+    document.getElementById('clone-btn').disabled =
+      !document.getElementById('clone-file').files[0];
+    document.getElementById('clone-status').textContent = '';
+    document.getElementById('clone-status').className = 'clone-status';
   });
 
   // --- File input ---
@@ -767,10 +853,10 @@
 
     const list = document.getElementById('chapter-list');
     list.innerHTML = chapterData.map(ch =>
-      `<li onclick="document.getElementById('ch-${ch.index}').click()">
+      `<li onclick="document.getElementById('ch-${ch.index}').click()" ${ch.boilerplate ? 'style="opacity:0.45;"' : ''}>
         <label onclick="event.stopPropagation()">
-          <input type="checkbox" id="ch-${ch.index}" value="${ch.index}" checked onchange="updateCostBadge()" />
-          <span class="ch-num">${String(ch.index + 1).padStart(2, '0')}</span>${ch.title}
+          <input type="checkbox" id="ch-${ch.index}" value="${ch.index}" ${ch.boilerplate ? '' : 'checked'} onchange="updateCostBadge()" />
+          <span class="ch-num">${String(ch.index + 1).padStart(2, '0')}</span>${ch.title}${ch.boilerplate ? ' <span style="font-family:\'Courier New\',monospace;font-size:0.68rem;color:var(--ink-dim);">(skipped)</span>' : ''}
         </label>
         <span class="ch-chunks">${ch.chunks}p</span>
       </li>`
@@ -836,6 +922,7 @@
           job_id: currentJobId,
           voice_id: voiceId,
           mode,
+          local_model: document.getElementById('local-model-select').value,
           chapter_indices: getSelectedIndices(),
         }),
       });
@@ -911,6 +998,64 @@
     document.getElementById('step-preview').classList.add('hidden');
     document.getElementById('step-error').classList.remove('hidden');
     document.getElementById('error-message').textContent = msg;
+  }
+
+  // --- Voice cloning ---
+  async function cloneVoice() {
+    const apiKey = document.getElementById('api-key').value.trim();
+    if (!apiKey) { alert('Enter your Mistral API key first.'); return; }
+
+    const nameInput = document.getElementById('clone-name').value.trim() || 'Custom Voice';
+    const fileInput = document.getElementById('clone-file');
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const btn = document.getElementById('clone-btn');
+    const statusEl = document.getElementById('clone-status');
+    btn.disabled = true;
+    statusEl.className = 'clone-status busy';
+    statusEl.textContent = 'Uploading sample…';
+
+    const form = new FormData();
+    form.append('file', file);
+    form.append('name', nameInput);
+
+    try {
+      const res = await fetch('/api/voices/create', {
+        method: 'POST',
+        headers: { 'X-Api-Key': apiKey },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        statusEl.className = 'clone-status err';
+        statusEl.textContent = data.detail || 'Failed to create voice.';
+        btn.disabled = false;
+        return;
+      }
+
+      // Add new voice to dropdown and select it
+      const select = document.getElementById('voice-select');
+      const opt = document.createElement('option');
+      opt.value = data.id;
+      opt.textContent = data.label;
+      // Insert at top for visibility
+      select.insertBefore(opt, select.firstChild);
+      select.value = data.id;
+      select.disabled = false;
+      document.getElementById('voice-status').textContent =
+        `(${select.options.length} available)`;
+
+      statusEl.className = 'clone-status ok';
+      statusEl.textContent = `✓ Voice "${data.label}" created and selected.`;
+
+      // Reset file input
+      fileInput.value = '';
+    } catch (e) {
+      statusEl.className = 'clone-status err';
+      statusEl.textContent = 'Network error: ' + e.message;
+      btn.disabled = false;
+    }
   }
 
   // --- Theme toggle ---
