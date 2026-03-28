@@ -633,9 +633,10 @@
         status.textContent = '';
         return;
       }
-      select.innerHTML = data.voices.map(v =>
-        `<option value="${v.id}">${v.label}</option>`
-      ).join('');
+      select.innerHTML = data.voices
+        .slice().sort((a, b) => a.label.localeCompare(b.label))
+        .map(v => `<option value="${v.id}">${v.label}</option>`)
+        .join('');
       select.disabled = false;
       status.textContent = `(${data.voices.length} available)`;
     } catch {
