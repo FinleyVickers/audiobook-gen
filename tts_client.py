@@ -44,17 +44,71 @@ _VOXTRAL_VOICES: list[dict] = [
 ]
 
 _KOKORO_VOICES: list[dict] = [
-    {"id": "af",          "label": "Default Female — EN-US"},
+    # EN-US Female
+    {"id": "af_alloy",    "label": "Alloy — EN-US Female"},
+    {"id": "af_aoede",    "label": "Aoede — EN-US Female"},
     {"id": "af_bella",    "label": "Bella — EN-US Female"},
+    {"id": "af_heart",    "label": "Heart — EN-US Female  ★ default"},
+    {"id": "af_jessica",  "label": "Jessica — EN-US Female"},
+    {"id": "af_kore",     "label": "Kore — EN-US Female"},
     {"id": "af_nicole",   "label": "Nicole — EN-US Female"},
+    {"id": "af_nova",     "label": "Nova — EN-US Female"},
+    {"id": "af_river",    "label": "River — EN-US Female"},
     {"id": "af_sarah",    "label": "Sarah — EN-US Female"},
     {"id": "af_sky",      "label": "Sky — EN-US Female"},
+    # EN-US Male
     {"id": "am_adam",     "label": "Adam — EN-US Male"},
+    {"id": "am_echo",     "label": "Echo — EN-US Male"},
+    {"id": "am_eric",     "label": "Eric — EN-US Male"},
+    {"id": "am_fenrir",   "label": "Fenrir — EN-US Male"},
+    {"id": "am_liam",     "label": "Liam — EN-US Male"},
     {"id": "am_michael",  "label": "Michael — EN-US Male"},
+    {"id": "am_onyx",     "label": "Onyx — EN-US Male"},
+    {"id": "am_puck",     "label": "Puck — EN-US Male"},
+    {"id": "am_santa",    "label": "Santa — EN-US Male"},
+    # EN-GB Female
+    {"id": "bf_alice",    "label": "Alice — EN-GB Female"},
     {"id": "bf_emma",     "label": "Emma — EN-GB Female"},
     {"id": "bf_isabella", "label": "Isabella — EN-GB Female"},
+    {"id": "bf_lily",     "label": "Lily — EN-GB Female"},
+    # EN-GB Male
+    {"id": "bm_daniel",   "label": "Daniel — EN-GB Male"},
+    {"id": "bm_fable",    "label": "Fable — EN-GB Male"},
     {"id": "bm_george",   "label": "George — EN-GB Male"},
     {"id": "bm_lewis",    "label": "Lewis — EN-GB Male"},
+    # Spanish
+    {"id": "ef_dora",     "label": "Dora — ES Female"},
+    {"id": "em_alex",     "label": "Alex — ES Male"},
+    {"id": "em_santa",    "label": "Santa — ES Male"},
+    # French
+    {"id": "ff_siwis",    "label": "Siwis — FR Female"},
+    # Hindi
+    {"id": "hf_alpha",    "label": "Alpha — HI Female"},
+    {"id": "hf_beta",     "label": "Beta — HI Female"},
+    {"id": "hm_omega",    "label": "Omega — HI Male"},
+    {"id": "hm_psi",      "label": "Psi — HI Male"},
+    # Italian
+    {"id": "if_sara",     "label": "Sara — IT Female"},
+    {"id": "im_nicola",   "label": "Nicola — IT Male"},
+    # Japanese
+    {"id": "jf_alpha",    "label": "Alpha — JA Female"},
+    {"id": "jf_gongitsune", "label": "Gongitsune — JA Female"},
+    {"id": "jf_nezumi",   "label": "Nezumi — JA Female"},
+    {"id": "jf_tebukuro", "label": "Tebukuro — JA Female"},
+    {"id": "jm_kumo",     "label": "Kumo — JA Male"},
+    # Portuguese
+    {"id": "pf_dora",     "label": "Dora — PT Female"},
+    {"id": "pm_alex",     "label": "Alex — PT Male"},
+    {"id": "pm_santa",    "label": "Santa — PT Male"},
+    # Chinese
+    {"id": "zf_xiaobei",  "label": "Xiaobei — ZH Female"},
+    {"id": "zf_xiaoni",   "label": "Xiaoni — ZH Female"},
+    {"id": "zf_xiaoxiao", "label": "Xiaoxiao — ZH Female"},
+    {"id": "zf_xiaoyi",   "label": "Xiaoyi — ZH Female"},
+    {"id": "zm_yunjian",  "label": "Yunjian — ZH Male"},
+    {"id": "zm_yunxi",    "label": "Yunxi — ZH Male"},
+    {"id": "zm_yunxia",   "label": "Yunxia — ZH Male"},
+    {"id": "zm_yunyang",  "label": "Yunyang — ZH Male"},
 ]
 
 # Models that use reference audio for voice cloning have no preset voices.
@@ -99,6 +153,7 @@ LOCAL_MODELS: dict[str, dict] = {
         "label":      "Kokoro 82M — bf16   (~170 MB)  ★ fast",
         "voice_mode": "preset",
         "voices":     _KOKORO_VOICES,
+        "extra_params": ["speed", "lang_code"],
     },
     "soprano": {
         "hf_id":      "mlx-community/Soprano-1.1-80M-bf16",
@@ -108,8 +163,8 @@ LOCAL_MODELS: dict[str, dict] = {
     },
     "outetts": {
         "hf_id":      "mlx-community/OuteTTS-1.0-0.6B-fp16",
-        "label":      "OuteTTS 1.0 0.6B — fp16  (~1.2 GB)",
-        "voice_mode": "none",
+        "label":      "OuteTTS 1.0 0.6B — fp16  (~1.2 GB)  · voice cloning optional",
+        "voice_mode": "ref_audio",
         "voices":     _NO_PRESET_VOICES,
     },
     "csm-1b": {
@@ -126,9 +181,10 @@ LOCAL_MODELS: dict[str, dict] = {
     },
     "chatterbox": {
         "hf_id":      "mlx-community/chatterbox-fp16",
-        "label":      "Chatterbox — fp16   (~0.8 GB)  · voice cloning",
+        "label":      "Chatterbox — fp16   (~0.8 GB)  · voice cloning + emotion",
         "voice_mode": "ref_audio",
         "voices":     _NO_PRESET_VOICES,
+        "extra_params": ["exaggeration", "cfg_weight"],
     },
     "dia-1.6b": {
         "hf_id":      "mlx-community/Dia-1.6B-fp16",
@@ -148,6 +204,24 @@ LOCAL_MODELS: dict[str, dict] = {
     "qwen3-tts-custom": {
         "hf_id":      "mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-bf16",
         "label":      "Qwen3-TTS 1.7B CustomVoice — bf16  (~3.4 GB)  · preset voices",
+        "voice_mode": "preset",
+        "voices":     _QWEN3_CUSTOM_VOICES,
+    },
+    "qwen3-tts-base": {
+        "hf_id":      "mlx-community/Qwen3-TTS-12Hz-1.7B-bf16",
+        "label":      "Qwen3-TTS 1.7B Base — bf16  (~3.4 GB)  · voice cloning",
+        "voice_mode": "ref_audio",
+        "voices":     _NO_PRESET_VOICES,
+    },
+    "qwen3-tts-0.6b": {
+        "hf_id":      "mlx-community/Qwen3-TTS-12Hz-0.6B-bf16",
+        "label":      "Qwen3-TTS 0.6B Base — bf16  (~1.2 GB)  · voice cloning",
+        "voice_mode": "ref_audio",
+        "voices":     _NO_PRESET_VOICES,
+    },
+    "qwen3-tts-0.6b-custom": {
+        "hf_id":      "mlx-community/Qwen3-TTS-12Hz-0.6B-CustomVoice-bf16",
+        "label":      "Qwen3-TTS 0.6B CustomVoice — bf16  (~1.2 GB)  · preset voices",
         "voice_mode": "preset",
         "voices":     _QWEN3_CUSTOM_VOICES,
     },
@@ -174,6 +248,10 @@ def _cli_synthesize_chunk(
     model_id: str,
     ref_audio_path: str | None = None,
     instruct: str | None = None,
+    speed: float | None = None,
+    lang_code: str | None = None,
+    exaggeration: float | None = None,
+    cfg_weight: float | None = None,
 ) -> bytes:
     """Synthesize a single chunk via the mlx_audio CLI subprocess."""
     import sys
@@ -197,6 +275,19 @@ def _cli_synthesize_chunk(
         # Natural-language voice description for Qwen3-TTS VoiceDesign (optional)
         if instruct:
             cmd += ["--instruct", instruct]
+        # Speed multiplier (Kokoro, others)
+        if speed is not None and speed != 1.0:
+            cmd += ["--speed", str(speed)]
+        # Language code override (Kokoro: a=US, b=GB, e=ES, f=FR, h=HI, i=IT, j=JA, p=PT, z=ZH)
+        if lang_code:
+            cmd += ["--lang_code", lang_code]
+        # Chatterbox emotion exaggeration (0.0–1.0)
+        if exaggeration is not None:
+            cmd += ["--exaggeration", str(exaggeration)]
+        # Chatterbox CFG weight
+        if cfg_weight is not None:
+            cmd += ["--cfg_weight", str(cfg_weight)]
+
         result = subprocess.run(cmd, capture_output=False)
         if result.returncode != 0:
             raise RuntimeError(f"mlx_audio CLI exited with code {result.returncode}")
@@ -224,11 +315,19 @@ class LocalTTSClient:
         model_key: str = LOCAL_MODEL_DEFAULT,
         ref_audio_path: str | None = None,
         instruct: str | None = None,
+        speed: float | None = None,
+        lang_code: str | None = None,
+        exaggeration: float | None = None,
+        cfg_weight: float | None = None,
     ):
         info = LOCAL_MODELS.get(model_key, LOCAL_MODELS[LOCAL_MODEL_DEFAULT])
         self._model_id = info["hf_id"]
         self._ref_audio_path = ref_audio_path
         self._instruct = instruct
+        self._speed = speed
+        self._lang_code = lang_code
+        self._exaggeration = exaggeration
+        self._cfg_weight = cfg_weight
 
     async def synthesize_chapter(
         self,
@@ -243,6 +342,7 @@ class LocalTTSClient:
             audio = await loop.run_in_executor(
                 None, _cli_synthesize_chunk, chunk, voice_id,
                 self._model_id, self._ref_audio_path, self._instruct,
+                self._speed, self._lang_code, self._exaggeration, self._cfg_weight,
             )
             results.append(audio)
 

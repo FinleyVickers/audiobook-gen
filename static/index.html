@@ -568,6 +568,36 @@
       <p class="field-note">Also supports reference audio above for speaker cloning.</p>
     </div>
 
+    <!-- Speed control (Kokoro, etc.) — hidden by default -->
+    <div class="field hidden" id="local-speed-field">
+      <label for="local-speed">Speed <span id="local-speed-value" style="font-family:'Courier New',monospace;font-size:0.7rem;color:var(--ink-dim);text-transform:none;letter-spacing:0;">1.0×</span></label>
+      <input type="range" id="local-speed" min="0.5" max="2.0" step="0.1" value="1.0" oninput="document.getElementById('local-speed-value').textContent = this.value + '×'" style="width:100%;" />
+    </div>
+
+    <!-- Language code (Kokoro) — hidden by default -->
+    <div class="field hidden" id="local-lang-code-field">
+      <label for="local-lang-code">Language Override <span style="font-family:'Courier New',monospace;font-size:0.68rem;color:var(--ink-dim);text-transform:none;letter-spacing:0;">optional · auto-detected from voice ID</span></label>
+      <select id="local-lang-code">
+        <option value="">Auto</option>
+        <option value="a">English — US</option>
+        <option value="b">English — GB</option>
+        <option value="e">Spanish</option>
+        <option value="f">French</option>
+        <option value="h">Hindi</option>
+        <option value="i">Italian</option>
+        <option value="j">Japanese</option>
+        <option value="p">Portuguese</option>
+        <option value="z">Chinese</option>
+      </select>
+    </div>
+
+    <!-- Chatterbox exaggeration — hidden by default -->
+    <div class="field hidden" id="local-exaggeration-field">
+      <label for="local-exaggeration">Emotion Exaggeration <span id="local-exaggeration-value" style="font-family:'Courier New',monospace;font-size:0.7rem;color:var(--ink-dim);text-transform:none;letter-spacing:0;">0.5</span></label>
+      <input type="range" id="local-exaggeration" min="0" max="1" step="0.05" value="0.5" oninput="document.getElementById('local-exaggeration-value').textContent = this.value" style="width:100%;" />
+      <p class="field-note">0 = neutral, 1 = maximum emotion. Higher values may reduce quality.</p>
+    </div>
+
     <!-- Voice cloning (API mode only) -->
     <details id="clone-details" class="hidden">
       <div class="clone-panel">
@@ -747,7 +777,7 @@
   }
 
   // --- Load local models list ---
-  let _localModels = [];  // [{id, label, voice_mode}]
+  let _localModels = [];  // [{id, label, voice_mode, extra_params}]
 
   async function loadLocalModels() {
     const modelSel = document.getElementById('local-model-select');
@@ -775,10 +805,16 @@
     const voiceMode = modelInfo ? modelInfo.voice_mode : 'none';
 
     const instructField = document.getElementById('local-instruct-field');
+    const extraParams = modelInfo ? (modelInfo.extra_params || []) : [];
 
     // Show/hide fields based on voice mode
     refField.classList.toggle('hidden', voiceMode !== 'ref_audio' && voiceMode !== 'instruct');
     instructField.classList.toggle('hidden', voiceMode !== 'instruct');
+
+    // Show/hide extra param fields
+    document.getElementById('local-speed-field').classList.toggle('hidden', !extraParams.includes('speed'));
+    document.getElementById('local-lang-code-field').classList.toggle('hidden', !extraParams.includes('lang_code'));
+    document.getElementById('local-exaggeration-field').classList.toggle('hidden', !extraParams.includes('exaggeration'));
 
     if (voiceMode === 'none') {
       voiceSel.innerHTML = '<option value="">— no voice selection for this model —</option>';
@@ -1007,6 +1043,10 @@
           local_model: document.getElementById('local-model-select').value,
           local_ref_audio: localRefAudioPath,
           local_instruct: document.getElementById('local-instruct').value.trim() || null,
+          local_speed: parseFloat(document.getElementById('local-speed').value) || null,
+          local_lang_code: document.getElementById('local-lang-code').value || null,
+          local_exaggeration: document.getElementById('local-exaggeration-field').classList.contains('hidden') ? null : parseFloat(document.getElementById('local-exaggeration').value),
+          local_cfg_weight: null,
           chapter_indices: getSelectedIndices(),
         }),
       });

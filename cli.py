@@ -134,7 +134,10 @@ async def _run(args):
             except (ValueError, IndexError):
                 local_model = LOCAL_MODEL_DEFAULT
             print(f"Using: {local_model}")
-        client = LocalTTSClient(model_key=local_model, ref_audio_path=args.ref_audio, instruct=args.instruct)
+        client = LocalTTSClient(
+            model_key=local_model, ref_audio_path=args.ref_audio, instruct=args.instruct,
+            speed=args.speed, lang_code=args.lang_code, exaggeration=args.exaggeration,
+        )
         chunk_ext = "wav"
     else:
         if not args.api_key:
@@ -211,6 +214,13 @@ def main():
     parser.add_argument("--instruct", default=None, metavar="TEXT",
                         help="Natural-language voice description for Qwen3-TTS VoiceDesign "
                              "(e.g. 'A warm, calm male narrator with a slight British accent')")
+    parser.add_argument("--speed", type=float, default=None, metavar="FLOAT",
+                        help="Speech speed multiplier, e.g. 1.2 for 20%% faster (Kokoro, others)")
+    parser.add_argument("--lang-code", default=None, metavar="CODE",
+                        help="Language code override for Kokoro (a=US, b=GB, e=ES, f=FR, "
+                             "h=HI, i=IT, j=JA, p=PT, z=ZH). Auto-detected from voice ID if omitted.")
+    parser.add_argument("--exaggeration", type=float, default=None, metavar="FLOAT",
+                        help="Emotion exaggeration 0.0–1.0 for Chatterbox (default: 0.5)")
     parser.add_argument("--api-key", default=os.environ.get("MISTRAL_API_KEY"),
                         help="Mistral API key (or set MISTRAL_API_KEY env var)")
     parser.add_argument("--chapters", nargs="+", type=int, metavar="N",
