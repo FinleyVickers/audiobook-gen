@@ -131,6 +131,10 @@ def _clean_text(text: str) -> str:
         lambda m: _roman_to_words(m.group(1)) + ". ",
         text,
     )
+    # Convert all-caps words to lowercase so TTS reads them as words, not letters
+    # Matches 2+ consecutive uppercase letters as a whole word, leaves single
+    # letters (pronoun "I", article "A") and mixed-case words untouched.
+    text = re.sub(r"\b([A-Z]{2,})\b", lambda m: m.group(1).lower(), text)
     # Remove non-printable chars except standard punctuation
     text = re.sub(r"[^\x20-\x7E\u00A0-\uFFFF]", "", text)
     return text.strip()
