@@ -8,111 +8,191 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --surface2: #22263a;
-      --border: #2e334d;
-      --accent: #6c63ff;
-      --accent-hover: #5a52e0;
-      --text: #e8eaf0;
-      --muted: #8b90a8;
-      --success: #4caf87;
-      --error: #e05c5c;
-      --radius: 10px;
+      --bg:      #F4EFE6;
+      --paper:   #FAF7F2;
+      --ink:     #1C1814;
+      --ink-mid: #4A453F;
+      --ink-dim: #7A746C;
+      --rule:    #C8BFB0;
+      --success: #2C5F3A;
+      --error:   #7A2020;
     }
+
+    [data-theme="dark"] {
+      --bg:      #141210;
+      --paper:   #1C1916;
+      --ink:     #E8E0D4;
+      --ink-mid: #B8AFA4;
+      --ink-dim: #7A746C;
+      --rule:    #3A3530;
+      --success: #4A8F5F;
+      --error:   #A04040;
+    }
+
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: Georgia, "Times New Roman", serif;
       background: var(--bg);
-      color: var(--text);
+      color: var(--ink);
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem 1rem 4rem;
+      padding: 3.5rem 1.5rem 6rem;
     }
 
+    .container {
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
     header {
       text-align: center;
-      margin-bottom: 2.5rem;
+      padding-bottom: 2.25rem;
+    }
+
+    .masthead-glyph {
+      display: block;
+      font-size: 1.5rem;
+      color: var(--ink-dim);
+      letter-spacing: 0.8em;
+      padding-left: 0.8em; /* compensate letter-spacing indent */
+      margin-bottom: 1.25rem;
+      user-select: none;
     }
 
     header h1 {
-      font-size: 2rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #6c63ff, #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    header p {
-      color: var(--muted);
-      margin-top: 0.5rem;
-      font-size: 0.95rem;
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.75rem;
-      width: 100%;
-      max-width: 640px;
-      margin-bottom: 1.25rem;
-    }
-
-    .card h2 {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 1.25rem;
-      color: var(--muted);
-      text-transform: uppercase;
+      font-size: 2.6rem;
+      font-weight: normal;
       letter-spacing: 0.06em;
-      font-size: 0.78rem;
+      line-height: 1.15;
+      margin-bottom: 0.5rem;
     }
 
-    label {
-      display: block;
-      font-size: 0.875rem;
-      color: var(--muted);
-      margin-bottom: 0.4rem;
+    header .subtitle {
+      font-style: italic;
+      color: var(--ink-dim);
+      font-size: 0.95rem;
+      line-height: 1.5;
     }
 
-    input[type="text"], input[type="password"], select {
-      width: 100%;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      padding: 0.6rem 0.8rem;
-      font-size: 0.9rem;
-      outline: none;
-      transition: border-color 0.15s;
+    /* ── Ornamental dividers ─────────────────────────────── */
+    .rule {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      margin: 1.75rem 0;
+      color: var(--rule);
+      font-size: 0.85rem;
+    }
+    .rule::before,
+    .rule::after {
+      content: '';
+      flex: 1;
+      border-top: 1px solid var(--rule);
+    }
+
+    .rule-thin {
+      border: none;
+      border-top: 1px solid var(--rule);
+      margin: 1.25rem 0;
+    }
+
+    /* ── Section labels ──────────────────────────────────── */
+    .label-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
       margin-bottom: 1rem;
     }
 
-    input:focus, select:focus {
-      border-color: var(--accent);
+    .section-num {
+      font-family: "Courier New", monospace;
+      font-size: 0.7rem;
+      color: var(--rule);
+      letter-spacing: 0.05em;
     }
 
-    .upload-area {
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
-      padding: 2.5rem 1rem;
+    .section-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--ink-dim);
+    }
+
+    /* ── Form fields ─────────────────────────────────────── */
+    .field {
+      margin-bottom: 1.4rem;
+    }
+
+    .field > label {
+      display: block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--ink-dim);
+      margin-bottom: 0.45rem;
+    }
+
+    .field input[type="password"],
+    .field input[type="text"],
+    .field select {
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--rule);
+      color: var(--ink);
+      padding: 0.4rem 0.1rem;
+      font-size: 1rem;
+      font-family: Georgia, serif;
+      outline: none;
+      border-radius: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: border-color 0.2s;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      border-bottom-color: var(--ink);
+    }
+
+    .field input::placeholder {
+      color: var(--rule);
+      font-style: italic;
+    }
+
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237A746C'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.25rem center;
+      padding-right: 1.2rem;
+      cursor: pointer;
+    }
+
+    .field .field-note {
+      font-family: "Courier New", monospace;
+      font-size: 0.72rem;
+      color: var(--ink-dim);
+      margin-top: 0.2rem;
+    }
+
+    /* ── Upload zone ─────────────────────────────────────── */
+    .upload-zone {
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      padding: 2.5rem 1.5rem;
       text-align: center;
       cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
       position: relative;
+      transition: border-color 0.2s;
     }
 
-    .upload-area:hover, .upload-area.drag-over {
-      border-color: var(--accent);
-      background: rgba(108, 99, 255, 0.05);
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+      border-color: var(--ink);
     }
 
-    .upload-area input[type="file"] {
+    .upload-zone input[type="file"] {
       position: absolute;
       inset: 0;
       opacity: 0;
@@ -121,252 +201,388 @@
       height: 100%;
     }
 
-    .upload-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
-
-    .upload-area p {
-      color: var(--muted);
-      font-size: 0.9rem;
+    .upload-glyph {
+      font-size: 1.75rem;
+      margin-bottom: 0.6rem;
+      line-height: 1;
     }
 
-    .upload-area .filename {
-      color: var(--text);
-      font-weight: 500;
+    .upload-zone p {
+      font-size: 0.9rem;
+      color: var(--ink-dim);
+      font-style: italic;
+      line-height: 1.5;
+    }
+
+    .upload-zone .filename {
+      font-family: "Courier New", monospace;
+      font-size: 0.82rem;
+      color: var(--ink-mid);
+      font-style: normal;
       margin-top: 0.5rem;
     }
 
+    /* ── Buttons ─────────────────────────────────────────── */
     button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 0.65rem 1.25rem;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s, opacity 0.15s;
+      display: block;
       width: 100%;
-      margin-top: 0.5rem;
+      font-family: Georgia, serif;
+      font-size: 0.82rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      border: 1px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
+      padding: 0.65rem 1.5rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
     }
 
-    button:hover { background: var(--accent-hover); }
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button:hover:not(:disabled) {
+      background: var(--ink);
+      color: var(--bg);
+    }
+
+    button:disabled {
+      border-color: var(--rule);
+      color: var(--rule);
+      cursor: not-allowed;
+    }
 
     .btn-secondary {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
+      border-color: var(--rule);
+      color: var(--ink-dim);
+      margin-top: 0.6rem;
     }
-    .btn-secondary:hover { background: var(--border); }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--rule);
+      color: var(--ink);
+    }
 
     .btn-success {
-      background: var(--success);
+      border-color: var(--success);
+      color: var(--success);
     }
-    .btn-success:hover { background: #3d9e71; }
+
+    .btn-success:hover:not(:disabled) {
+      background: var(--success);
+      color: var(--bg);
+    }
+
+    /* ── Book preview ────────────────────────────────────── */
+    .book-title {
+      font-size: 1.4rem;
+      font-weight: normal;
+      font-style: italic;
+      line-height: 1.3;
+      margin-bottom: 0.3rem;
+    }
+
+    .cost-line {
+      font-family: "Courier New", monospace;
+      font-size: 0.78rem;
+      color: var(--ink-dim);
+      letter-spacing: 0.04em;
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── Chapter list ────────────────────────────────────── */
+    .chapter-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.4rem;
+    }
+
+    .chapter-controls .ch-count {
+      font-family: "Courier New", monospace;
+      font-size: 0.73rem;
+      color: var(--ink-dim);
+    }
+
+    .chapter-controls .ch-toggle {
+      font-size: 0.73rem;
+      color: var(--ink-dim);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .chapter-controls .ch-toggle:hover { color: var(--ink); }
 
     .chapter-list {
       list-style: none;
-      max-height: 240px;
+      border-top: 1px solid var(--rule);
+      max-height: 260px;
       overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      margin-bottom: 1rem;
+      margin-bottom: 1.4rem;
     }
 
+    .chapter-list::-webkit-scrollbar { width: 3px; }
+    .chapter-list::-webkit-scrollbar-track { background: var(--bg); }
+    .chapter-list::-webkit-scrollbar-thumb { background: var(--rule); }
+
     .chapter-list li {
-      padding: 0.55rem 0.8rem;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.85rem;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--rule);
       cursor: pointer;
       transition: background 0.1s;
     }
 
-    .chapter-list li:hover { background: rgba(255,255,255,0.03); }
-    .chapter-list li:last-child { border-bottom: none; }
+    .chapter-list li:hover { background: rgba(0,0,0,0.02); }
 
     .chapter-list li label {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
+      gap: 0.65rem;
       flex: 1;
-      margin-bottom: 0;
-      color: var(--text);
-      font-size: 0.85rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--ink-mid);
+      text-transform: none;
+      letter-spacing: 0;
+      line-height: 1.4;
     }
 
     .chapter-list li input[type="checkbox"] {
-      width: 15px;
-      height: 15px;
-      accent-color: var(--accent);
+      width: 13px;
+      height: 13px;
+      accent-color: var(--ink);
       flex-shrink: 0;
       cursor: pointer;
     }
 
     .chapter-list .ch-num {
-      color: var(--muted);
-      font-size: 0.75rem;
+      font-family: "Courier New", monospace;
+      font-size: 0.7rem;
+      color: var(--rule);
+      min-width: 1.75rem;
+      flex-shrink: 0;
     }
 
     .chapter-list .ch-chunks {
-      color: var(--muted);
-      font-size: 0.75rem;
+      font-family: "Courier New", monospace;
+      font-size: 0.68rem;
+      color: var(--rule);
       white-space: nowrap;
-      margin-left: 0.5rem;
+      margin-left: auto;
+      padding-left: 0.5rem;
     }
 
-    .chapter-select-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-
-    .chapter-select-controls span {
-      cursor: pointer;
-      color: var(--accent);
-      text-decoration: underline;
-    }
-
-    .chapter-select-controls span:hover { color: var(--accent-hover); }
-
-    .cost-badge {
-      display: inline-block;
-      background: rgba(108, 99, 255, 0.15);
-      border: 1px solid rgba(108, 99, 255, 0.4);
-      color: #a78bfa;
-      border-radius: 999px;
-      padding: 0.2rem 0.7rem;
-      font-size: 0.8rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
+    /* ── Progress ────────────────────────────────────────── */
+    .progress-chapter-label {
+      font-style: italic;
+      color: var(--ink-mid);
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+      line-height: 1.4;
     }
 
     .progress-bar-wrap {
-      background: var(--surface2);
-      border-radius: 999px;
-      height: 10px;
-      overflow: hidden;
-      margin-bottom: 0.75rem;
+      border: 1px solid var(--rule);
+      height: 3px;
+      background: var(--bg);
+      margin-bottom: 0.5rem;
     }
 
     .progress-bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--accent), #a78bfa);
-      border-radius: 999px;
-      transition: width 0.3s ease;
+      background: var(--ink);
+      transition: width 0.4s ease;
       width: 0%;
     }
 
-    .progress-label {
+    .progress-meta {
       display: flex;
       justify-content: space-between;
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-bottom: 1rem;
+      font-family: "Courier New", monospace;
+      font-size: 0.72rem;
+      color: var(--ink-dim);
     }
 
-    .status-text {
-      font-size: 0.875rem;
-      color: var(--muted);
+    /* ── Status text ─────────────────────────────────────── */
+    .status-success {
+      font-style: italic;
+      color: var(--success);
+      font-size: 0.95rem;
+      margin-bottom: 1.1rem;
+      line-height: 1.5;
+    }
+
+    .status-error {
+      font-style: italic;
+      color: var(--error);
+      font-size: 0.9rem;
+      margin-bottom: 1.1rem;
+      line-height: 1.5;
+    }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    .colophon {
       text-align: center;
-      margin-bottom: 0.5rem;
+      font-size: 0.73rem;
+      color: var(--rule);
+      font-style: italic;
+      line-height: 1.7;
     }
 
-    .status-text.error { color: var(--error); }
-    .status-text.success { color: var(--success); }
-
-    .hidden { display: none !important; }
-
-    .toggle-key {
-      font-size: 0.8rem;
-      color: var(--accent);
+    /* ── Theme toggle ────────────────────────────────────── */
+    .theme-toggle {
+      position: fixed;
+      top: 1.25rem;
+      right: 1.25rem;
+      background: transparent;
+      border: 1px solid var(--rule);
+      color: var(--ink-dim);
+      font-family: "Courier New", monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.6rem;
       cursor: pointer;
-      text-align: right;
-      margin-bottom: 0.75rem;
-      text-decoration: underline;
+      width: auto;
+      transition: border-color 0.2s, color 0.2s;
     }
+
+    .theme-toggle:hover:not(:disabled) {
+      background: transparent;
+      border-color: var(--ink-dim);
+      color: var(--ink);
+    }
+
+    /* ── Utilities ───────────────────────────────────────── */
+    .hidden { display: none !important; }
+    .mt { margin-top: 0.6rem; }
   </style>
 </head>
 <body>
+<button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀ Light</button>
 
-<header>
-  <h1>Audiobook Generator</h1>
-  <p>Convert any ebook to an M4B audiobook using Mistral Voxtral TTS</p>
-</header>
+<div class="container">
 
-<!-- Step 1: Config + Upload -->
-<div class="card" id="step-upload">
-  <h2>Configuration</h2>
+  <header>
+    <span class="masthead-glyph">❧ ✦ ❧</span>
+    <h1>Audiobook Generator</h1>
+    <p class="subtitle">Converts written works to spoken word<br>using Mistral Voxtral text-to-speech</p>
+  </header>
 
-  <label for="api-key">Mistral API Key</label>
-  <input type="password" id="api-key" placeholder="your-mistral-api-key" autocomplete="off" />
+  <div class="rule">§</div>
 
-  <label for="voice-select">Voice <span id="voice-status" style="color:var(--muted);font-size:0.75rem;font-weight:400;"></span></label>
-  <select id="voice-select" disabled>
-    <option value="">Enter API key to load voices…</option>
-  </select>
+  <!-- ── Step 1: Config + Upload ───────────────────────── -->
+  <div id="step-upload">
 
-  <h2 style="margin-top:0.5rem">Upload Ebook</h2>
+    <div class="label-row">
+      <span class="section-num">I.</span>
+      <span class="section-title">Configuration</span>
+    </div>
 
-  <div class="upload-area" id="upload-area">
-    <input type="file" id="file-input" accept=".epub" />
-    <div class="upload-icon">📚</div>
-    <p>Drop your <strong>.epub</strong> file here or click to browse</p>
-    <p class="filename hidden" id="selected-filename"></p>
+    <div class="field">
+      <label for="api-key">Mistral API Key</label>
+      <input type="password" id="api-key" placeholder="Enter key to summon voices…" autocomplete="off" />
+    </div>
+
+    <div class="field">
+      <label for="voice-select">
+        Voice&ensp;<span id="voice-status" style="font-family:'Courier New',monospace;font-size:0.7rem;color:var(--rule);text-transform:none;letter-spacing:0;"></span>
+      </label>
+      <select id="voice-select" disabled>
+        <option value="">— enter API key to load voices —</option>
+      </select>
+    </div>
+
+    <div class="rule">⁂</div>
+
+    <div class="label-row">
+      <span class="section-num">II.</span>
+      <span class="section-title">Upload Ebook</span>
+    </div>
+
+    <div class="upload-zone" id="upload-area">
+      <input type="file" id="file-input" accept=".epub" />
+      <div class="upload-glyph">📖</div>
+      <p>Place your <em>.epub</em> here, or click to browse</p>
+      <p class="filename hidden" id="selected-filename"></p>
+    </div>
+
+    <br>
+    <button id="upload-btn" onclick="uploadFile()" disabled>Upload & Analyze</button>
   </div>
 
-  <button id="upload-btn" onclick="uploadFile()" disabled>Upload & Analyze</button>
-</div>
+  <!-- ── Step 2: Chapters + generate ──────────────────── -->
+  <div id="step-preview" class="hidden">
 
-<!-- Step 2: Chapter preview + generate -->
-<div class="card hidden" id="step-preview">
-  <h2>Book Details</h2>
-  <p id="book-title-label" style="font-weight:600;margin-bottom:0.75rem;font-size:1.05rem;"></p>
-  <div class="cost-badge" id="cost-label"></div>
-  <div class="chapter-select-controls">
-    <span id="selected-count"></span>
-    <span onclick="toggleSelectAll()">Select All / None</span>
+    <div class="label-row">
+      <span class="section-num">III.</span>
+      <span class="section-title">Select Chapters</span>
+    </div>
+
+    <p class="book-title" id="book-title-label"></p>
+    <p class="cost-line" id="cost-label"></p>
+
+    <div class="chapter-controls">
+      <span class="ch-count" id="selected-count"></span>
+      <span class="ch-toggle" onclick="toggleSelectAll()">Select All / None</span>
+    </div>
+    <ul class="chapter-list" id="chapter-list"></ul>
+
+    <button id="generate-btn" onclick="startGeneration()">Generate Audiobook</button>
+    <button class="btn-secondary" onclick="resetAll()">Start Over</button>
   </div>
-  <ul class="chapter-list" id="chapter-list"></ul>
-  <button id="generate-btn" onclick="startGeneration()">Generate Audiobook</button>
-  <button class="btn-secondary" style="margin-top:0.5rem" onclick="resetAll()">Start Over</button>
-</div>
 
-<!-- Step 3: Progress -->
-<div class="card hidden" id="step-progress">
-  <h2>Generating Audiobook</h2>
-  <p class="status-text" id="progress-chapter">Starting...</p>
-  <div class="progress-bar-wrap">
-    <div class="progress-bar-fill" id="progress-fill"></div>
+  <!-- ── Step 3: Progress ──────────────────────────────── -->
+  <div id="step-progress" class="hidden">
+
+    <div class="label-row">
+      <span class="section-num">IV.</span>
+      <span class="section-title">Generating</span>
+    </div>
+
+    <p class="progress-chapter-label" id="progress-chapter">Preparing…</p>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+    <div class="progress-meta">
+      <span id="progress-count">0 / 0 passages</span>
+      <span id="progress-pct">0%</span>
+    </div>
   </div>
-  <div class="progress-label">
-    <span id="progress-count">0 / 0 chunks</span>
-    <span id="progress-pct">0%</span>
+
+  <!-- ── Step 4: Complete ──────────────────────────────── -->
+  <div id="step-done" class="hidden">
+
+    <div class="label-row">
+      <span class="section-num">V.</span>
+      <span class="section-title">Complete</span>
+    </div>
+
+    <p class="status-success" id="done-message"></p>
+    <button class="btn-success" onclick="downloadAudiobook()">Download Audiobook (.m4b)</button>
+    <button class="btn-secondary" onclick="resetAll()">Generate Another</button>
   </div>
-</div>
 
-<!-- Step 4: Complete / Error -->
-<div class="card hidden" id="step-done">
-  <h2>Done</h2>
-  <p class="status-text success" id="done-message"></p>
-  <button class="btn-success" id="download-btn" onclick="downloadAudiobook()">Download Audiobook (.m4b)</button>
-  <button class="btn-secondary" style="margin-top:0.75rem" onclick="resetAll()">Convert Another</button>
-</div>
+  <!-- ── Error ─────────────────────────────────────────── -->
+  <div id="step-error" class="hidden">
 
-<div class="card hidden" id="step-error">
-  <h2>Error</h2>
-  <p class="status-text error" id="error-message"></p>
-  <button class="btn-secondary" onclick="resetAll()">Try Again</button>
-</div>
+    <div class="label-row">
+      <span class="section-num">!</span>
+      <span class="section-title">Error</span>
+    </div>
+
+    <p class="status-error" id="error-message"></p>
+    <button class="btn-secondary" onclick="resetAll()">Try Again</button>
+  </div>
+
+  <div class="rule">§</div>
+
+  <p class="colophon">
+    Powered by Mistral Voxtral &middot; $0.016 per 1,000 characters<br>
+    Audio assembled with ffmpeg &middot; Output format: M4B with chapter markers
+  </p>
+
+</div><!-- /.container -->
 
 <script>
   let currentJobId = null;
@@ -395,7 +611,7 @@
     const select = document.getElementById('voice-select');
     const status = document.getElementById('voice-status');
     if (!apiKey) {
-      select.innerHTML = '<option value="">Enter API key to load voices…</option>';
+      select.innerHTML = '<option value="">— enter API key to load voices —</option>';
       select.disabled = true;
       status.textContent = '';
       return;
@@ -408,7 +624,7 @@
       });
       const data = await res.json();
       if (!res.ok) {
-        status.textContent = '(error loading voices)';
+        status.textContent = '(error)';
         select.innerHTML = '<option value="">Failed to load — check API key</option>';
         return;
       }
@@ -421,14 +637,14 @@
         `<option value="${v.id}">${v.label}</option>`
       ).join('');
       select.disabled = false;
-      status.textContent = `(${data.voices.length} voices)`;
+      status.textContent = `(${data.voices.length} available)`;
     } catch {
       status.textContent = '(network error)';
       select.innerHTML = '<option value="">Failed to load voices</option>';
     }
   }
 
-  // Auto-load if key is already saved
+  // Auto-load if key already saved
   if (savedKey && savedKey.length > 10) {
     loadVoices(savedKey);
   }
@@ -438,9 +654,7 @@
   const uploadArea = document.getElementById('upload-area');
 
   fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) {
-      showFilename(fileInput.files[0].name);
-    }
+    if (fileInput.files[0]) showFilename(fileInput.files[0].name);
   });
 
   uploadArea.addEventListener('dragover', e => {
@@ -472,7 +686,7 @@
 
     const btn = document.getElementById('upload-btn');
     btn.disabled = true;
-    btn.textContent = 'Analyzing...';
+    btn.textContent = 'Analyzing…';
 
     const form = new FormData();
     form.append('file', file);
@@ -497,6 +711,7 @@
     }
   }
 
+  // --- Preview with chapter checkboxes ---
   function showPreview(data) {
     document.getElementById('step-upload').classList.add('hidden');
     document.getElementById('step-preview').classList.remove('hidden');
@@ -509,9 +724,9 @@
       `<li onclick="document.getElementById('ch-${ch.index}').click()">
         <label onclick="event.stopPropagation()">
           <input type="checkbox" id="ch-${ch.index}" value="${ch.index}" checked onchange="updateCostBadge()" />
-          <span class="ch-num">${ch.index + 1}.</span>${ch.title}
+          <span class="ch-num">${String(ch.index + 1).padStart(2, '0')}</span>${ch.title}
         </label>
-        <span class="ch-chunks">${ch.chunks} chunks</span>
+        <span class="ch-chunks">${ch.chunks}p</span>
       </li>`
     ).join('');
 
@@ -525,9 +740,9 @@
       .reduce((sum, ch) => sum + ch.chars, 0);
     const cost = (selectedChars / 1000) * 0.016;
     document.getElementById('cost-label').textContent =
-      `~${selectedChars.toLocaleString()} chars · Est. $${cost.toFixed(4)}`;
+      `${selectedChars.toLocaleString()} characters  ·  est. $${cost.toFixed(4)}`;
     document.getElementById('selected-count').textContent =
-      `${checked.length} of ${chapterData.length} chapters selected`;
+      `${checked.length} of ${chapterData.length} chapters`;
     document.getElementById('generate-btn').disabled = checked.length === 0;
   }
 
@@ -556,7 +771,7 @@
     const voiceId = document.getElementById('voice-select').value;
     const btn = document.getElementById('generate-btn');
     btn.disabled = true;
-    btn.textContent = 'Starting...';
+    btn.textContent = 'Starting…';
 
     try {
       const res = await fetch('/api/generate', {
@@ -566,10 +781,10 @@
           'X-Api-Key': apiKey,
         },
         body: JSON.stringify({
-        job_id: currentJobId,
-        voice_id: voiceId,
-        chapter_indices: getSelectedIndices(),
-      }),
+          job_id: currentJobId,
+          voice_id: voiceId,
+          chapter_indices: getSelectedIndices(),
+        }),
       });
 
       const data = await res.json();
@@ -599,32 +814,23 @@
     eventSource = new EventSource(`/api/progress/${currentJobId}`);
 
     eventSource.onmessage = e => {
-      const data = JSON.parse(e.data);
-      handleProgressEvent(data);
-    };
-
-    eventSource.onerror = () => {
-      // SSE reconnects automatically; only show error if job is gone
+      handleProgressEvent(JSON.parse(e.data));
     };
   }
 
   function handleProgressEvent(data) {
-    if (data.error && !data.status) {
-      showError(data.error);
-      return;
-    }
+    if (data.error && !data.status) { showError(data.error); return; }
 
     const { status, total_chunks, completed_chunks, current_chapter, current_chapter_index, total_chapters } = data;
 
-    // Update progress bar
     const pct = total_chunks > 0 ? Math.round((completed_chunks / total_chunks) * 100) : 0;
     document.getElementById('progress-fill').style.width = pct + '%';
-    document.getElementById('progress-count').textContent = `${completed_chunks} / ${total_chunks} chunks`;
+    document.getElementById('progress-count').textContent = `${completed_chunks} / ${total_chunks} passages`;
     document.getElementById('progress-pct').textContent = pct + '%';
 
     if (current_chapter) {
       document.getElementById('progress-chapter').textContent =
-        `Chapter ${current_chapter_index + 1} of ${total_chapters}: ${current_chapter}`;
+        `Chapter ${current_chapter_index + 1} of ${total_chapters} — ${current_chapter}`;
     }
 
     if (status === 'complete') {
@@ -639,7 +845,8 @@
   function showDone() {
     document.getElementById('step-progress').classList.add('hidden');
     document.getElementById('step-done').classList.remove('hidden');
-    document.getElementById('done-message').textContent = 'Your audiobook is ready!';
+    document.getElementById('done-message').textContent =
+      'Your audiobook is ready for download.';
   }
 
   function downloadAudiobook() {
@@ -653,6 +860,21 @@
     document.getElementById('error-message').textContent = msg;
   }
 
+  // --- Theme toggle ---
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  applyTheme(savedTheme);
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : '');
+    document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
+    localStorage.setItem('theme', theme);
+  }
+
+  function toggleTheme() {
+    const current = localStorage.getItem('theme') || 'light';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  }
+
   function resetAll() {
     if (eventSource) { eventSource.close(); eventSource = null; }
     currentJobId = null;
@@ -662,7 +884,7 @@
     document.getElementById('upload-btn').disabled = true;
     document.getElementById('upload-btn').textContent = 'Upload & Analyze';
     document.getElementById('progress-fill').style.width = '0%';
-    document.getElementById('progress-chapter').textContent = 'Starting...';
+    document.getElementById('progress-chapter').textContent = 'Preparing…';
     document.getElementById('step-upload').classList.remove('hidden');
     document.getElementById('step-preview').classList.add('hidden');
     document.getElementById('step-progress').classList.add('hidden');
