@@ -8,4 +8,4 @@ lxml
 python-multipart
 # Optional: local inference on Apple Silicon (requires macOS + MLX)
 # Voxtral support is not yet in a PyPI release — install from GitHub:
-# pip install git+https://github.com/Blaizzy/mlx-audio.git soundfile tiktoken
+# pip install git+https://github.com/Blaizzy/mlx-audio.git soundfile tiktoken misaki
