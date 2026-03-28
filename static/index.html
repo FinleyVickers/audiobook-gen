@@ -541,10 +541,8 @@
 
     <div class="field hidden" id="local-model-field">
       <label for="local-model-select">Local Model</label>
-      <select id="local-model-select">
-        <option value="6bit">6-bit (~3.5 GB)</option>
-        <option value="4bit">4-bit (~2.5 GB)</option>
-        <option value="bf16">BF16 — unquantized (~8 GB)</option>
+      <select id="local-model-select" onchange="onLocalModelChange()">
+        <option value="">loading…</option>
       </select>
     </div>
 
@@ -555,6 +553,12 @@
       <select id="voice-select" disabled>
         <option value="">— enter API key to load voices —</option>
       </select>
+    </div>
+
+    <!-- Ref-audio upload for local voice-cloning models (hidden by default) -->
+    <div class="field hidden" id="local-ref-audio-field">
+      <label for="local-ref-audio">Reference Audio <span style="font-family:'Courier New',monospace;font-size:0.68rem;color:var(--ink-dim);text-transform:none;letter-spacing:0;">optional · WAV / MP3 for voice cloning</span></label>
+      <input type="file" id="local-ref-audio" accept="audio/*" style="font-size:0.85rem;color:var(--ink-mid);cursor:pointer;padding:0.3rem 0;" />
     </div>
 
     <!-- Voice cloning (API mode only) -->
@@ -735,24 +739,82 @@
     }
   }
 
-  // --- Load local voices ---
-  async function loadLocalVoices() {
-    const select = document.getElementById('voice-select');
-    const status = document.getElementById('voice-status');
-    select.disabled = true;
-    status.textContent = '(loading…)';
+  // --- Load local models list ---
+  let _localModels = [];  // [{id, label, voice_mode}]
+
+  async function loadLocalModels() {
+    const modelSel = document.getElementById('local-model-select');
     try {
       const res = await fetch('/api/local-voices');
       const data = await res.json();
-      select.innerHTML = data.voices
+      _localModels = data.models;
+      modelSel.innerHTML = data.models
+        .map(m => `<option value="${m.id}">${m.label}</option>`)
+        .join('');
+      modelSel.value = data.default_model;
+      await loadLocalVoicesForModel(data.default_model);
+    } catch {
+      modelSel.innerHTML = '<option value="">Failed to load models</option>';
+    }
+  }
+
+  // --- Load voices for the selected local model ---
+  async function loadLocalVoicesForModel(modelKey) {
+    const voiceSel = document.getElementById('voice-select');
+    const status   = document.getElementById('voice-status');
+    const refField = document.getElementById('local-ref-audio-field');
+
+    const modelInfo = _localModels.find(m => m.id === modelKey);
+    const voiceMode = modelInfo ? modelInfo.voice_mode : 'none';
+
+    // Show/hide ref-audio upload for cloning models
+    refField.classList.toggle('hidden', voiceMode !== 'ref_audio');
+
+    if (voiceMode === 'none') {
+      voiceSel.innerHTML = '<option value="">— no voice selection for this model —</option>';
+      voiceSel.disabled = true;
+      status.textContent = '';
+      return;
+    }
+
+    if (voiceMode === 'ref_audio') {
+      voiceSel.innerHTML = '<option value="">— use reference audio above —</option>';
+      voiceSel.disabled = true;
+      status.textContent = '(voice cloning)';
+      return;
+    }
+
+    // preset voices
+    voiceSel.disabled = true;
+    status.textContent = '(loading…)';
+    try {
+      const res = await fetch(`/api/local-voices/${modelKey}`);
+      const data = await res.json();
+      if (!data.voices.length) {
+        voiceSel.innerHTML = '<option value="">— default voice —</option>';
+        voiceSel.disabled = true;
+        status.textContent = '';
+        return;
+      }
+      voiceSel.innerHTML = data.voices
         .map(v => `<option value="${v.id}">${v.label}</option>`)
         .join('');
-      select.disabled = false;
+      voiceSel.disabled = false;
       status.textContent = `(${data.voices.length} available)`;
     } catch {
       status.textContent = '(network error)';
-      select.innerHTML = '<option value="">Failed to load voices</option>';
+      voiceSel.innerHTML = '<option value="">Failed to load voices</option>';
     }
+  }
+
+  async function onLocalModelChange() {
+    const key = document.getElementById('local-model-select').value;
+    await loadLocalVoicesForModel(key);
+  }
+
+  // --- Load local voices (called when switching to local mode) ---
+  async function loadLocalVoices() {
+    await loadLocalModels();
   }
 
   // Restore API key and auto-load voices
@@ -915,6 +977,9 @@
     if (mode === 'api') headers['X-Api-Key'] = apiKey;
 
     try {
+      const localRefAudioFile = document.getElementById('local-ref-audio').files[0];
+      const localRefAudioPath = localRefAudioFile ? await _uploadRefAudio(localRefAudioFile) : null;
+
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers,
@@ -923,6 +988,7 @@
           voice_id: voiceId,
           mode,
           local_model: document.getElementById('local-model-select').value,
+          local_ref_audio: localRefAudioPath,
           chapter_indices: getSelectedIndices(),
         }),
       });
@@ -998,6 +1064,16 @@
     document.getElementById('step-preview').classList.add('hidden');
     document.getElementById('step-error').classList.remove('hidden');
     document.getElementById('error-message').textContent = msg;
+  }
+
+  // --- Upload local reference audio for voice-cloning models ---
+  async function _uploadRefAudio(file) {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('/api/upload-ref-audio', { method: 'POST', body: form });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.path;
   }
 
   // --- Voice cloning ---

@@ -29,14 +29,17 @@ from pathlib import Path
 
 
 def _print_voices_local():
-    from tts_client import LOCAL_VOICES, LOCAL_MODELS
-    print("\nLocal voices:")
-    for v in sorted(LOCAL_VOICES, key=lambda x: x["label"]):
-        print(f"  {v['id']:<20} {v['label']}")
-    print("\nLocal models:")
-    labels = {"4bit": "4-bit  (~2.5 GB)", "6bit": "6-bit  (~3.5 GB)", "bf16": "BF16   (~8.0 GB)"}
-    for k, label in labels.items():
-        print(f"  {k:<8} {label}")
+    from tts_client import LOCAL_MODELS
+    print("\nLocal models and voices:")
+    for key, info in LOCAL_MODELS.items():
+        print(f"\n  {key:<18} {info['label']}")
+        if info["voice_mode"] == "preset" and info["voices"]:
+            for v in sorted(info["voices"], key=lambda x: x["label"]):
+                print(f"    {v['id']:<20} {v['label']}")
+        elif info["voice_mode"] == "ref_audio":
+            print(f"    (voice cloning — provide --ref-audio path)")
+        else:
+            print(f"    (single default voice)")
 
 
 async def _print_voices_api(api_key: str):
@@ -115,14 +118,23 @@ async def _run(args):
     if args.mode == "local":
         local_model = args.local_model
         if not local_model:
-            print("\nLocal model:")
-            print("  [1] 4bit  — ~2.5 GB  (fastest)")
-            print("  [2] 6bit  — ~3.5 GB  (recommended)")
-            print("  [3] bf16  — ~8.0 GB  (unquantized)")
-            choice = input("Select [1/2/3] (default 2): ").strip()
-            local_model = {"1": "4bit", "3": "bf16"}.get(choice, "6bit")
+            from tts_client import LOCAL_MODELS, LOCAL_MODEL_DEFAULT
+            print("\nLocal model (enter number):")
+            model_list = list(LOCAL_MODELS.items())
+            for i, (key, info) in enumerate(model_list, 1):
+                default_mark = " ★" if key == LOCAL_MODEL_DEFAULT else ""
+                print(f"  [{i:>2}] {key:<18} {info['label']}{default_mark}")
+            default_idx = next(
+                (i for i, (k, _) in enumerate(model_list, 1) if k == LOCAL_MODEL_DEFAULT), 1
+            )
+            choice = input(f"Select [1-{len(model_list)}] (default {default_idx}): ").strip()
+            try:
+                idx = int(choice) - 1
+                local_model = model_list[idx][0] if 0 <= idx < len(model_list) else LOCAL_MODEL_DEFAULT
+            except (ValueError, IndexError):
+                local_model = LOCAL_MODEL_DEFAULT
             print(f"Using: {local_model}")
-        client = LocalTTSClient(model_key=local_model)
+        client = LocalTTSClient(model_key=local_model, ref_audio_path=args.ref_audio)
         chunk_ext = "wav"
     else:
         if not args.api_key:
@@ -190,10 +202,12 @@ def main():
     parser.add_argument("--mode", choices=["local", "api"], default="local",
                         help="Inference mode (default: local)")
     parser.add_argument("--voice", default="neutral_male",
-                        help="Voice ID (default: neutral_male)")
-    parser.add_argument("--local-model", choices=["4bit", "6bit", "bf16"], default=None,
-                        help="Local model quality: 4bit (~2.5 GB), 6bit (~3.5 GB), bf16 (~8 GB). "
-                             "Omit to be prompted interactively.")
+                        help="Voice ID (default: neutral_male for Voxtral; use --list-voices to see options)")
+    parser.add_argument("--local-model", default=None, metavar="MODEL_KEY",
+                        help="Local model key (e.g. voxtral-6bit, kokoro, csm-1b). "
+                             "Omit to be prompted interactively. Use --list-voices to see all options.")
+    parser.add_argument("--ref-audio", default=None, metavar="PATH",
+                        help="Reference audio file for voice-cloning local models (csm-1b, chatterbox, etc.)")
     parser.add_argument("--api-key", default=os.environ.get("MISTRAL_API_KEY"),
                         help="Mistral API key (or set MISTRAL_API_KEY env var)")
     parser.add_argument("--chapters", nargs="+", type=int, metavar="N",

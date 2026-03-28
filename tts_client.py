@@ -20,16 +20,7 @@ _RATE_LIMIT_RPS = 6
 
 # ── Local (mlx-audio) ────────────────────────────────────────────────────────
 
-LOCAL_MODELS = {
-    "4bit":  "mlx-community/Voxtral-4B-TTS-2603-mlx-4bit",
-    "6bit":  "mlx-community/Voxtral-4B-TTS-2603-mlx-6bit",
-    "bf16":  "mlx-community/Voxtral-4B-TTS-2603-mlx-bf16",
-}
-LOCAL_MODEL_DEFAULT = "6bit"
-_MIRROR_DIR = Path(__file__).parent / "local_audio_output"
-
-# Preset voices bundled with the Voxtral-4B local model.
-LOCAL_VOICES: list[dict] = [
+_VOXTRAL_VOICES: list[dict] = [
     {"id": "casual_male",     "label": "Casual Male — EN"},
     {"id": "casual_female",   "label": "Casual Female — EN"},
     {"id": "cheerful_female", "label": "Cheerful Female — EN"},
@@ -52,7 +43,118 @@ LOCAL_VOICES: list[dict] = [
     {"id": "hi_female",       "label": "Female — HI"},
 ]
 
-def _cli_synthesize_chunk(text: str, voice_id: str, model_id: str) -> bytes:
+_KOKORO_VOICES: list[dict] = [
+    {"id": "af",          "label": "Default Female — EN-US"},
+    {"id": "af_bella",    "label": "Bella — EN-US Female"},
+    {"id": "af_nicole",   "label": "Nicole — EN-US Female"},
+    {"id": "af_sarah",    "label": "Sarah — EN-US Female"},
+    {"id": "af_sky",      "label": "Sky — EN-US Female"},
+    {"id": "am_adam",     "label": "Adam — EN-US Male"},
+    {"id": "am_michael",  "label": "Michael — EN-US Male"},
+    {"id": "bf_emma",     "label": "Emma — EN-GB Female"},
+    {"id": "bf_isabella", "label": "Isabella — EN-GB Female"},
+    {"id": "bm_george",   "label": "George — EN-GB Male"},
+    {"id": "bm_lewis",    "label": "Lewis — EN-GB Male"},
+]
+
+# Models that use reference audio for voice cloning have no preset voices.
+# Passing voice_id="" to the CLI omits --voice so the model uses its default.
+_NO_PRESET_VOICES: list[dict] = []
+
+# Registry of all supported local models.
+# voice_mode: "preset"    — select from voices list via --voice
+#             "ref_audio" — optionally clone with --ref_audio / --ref_text
+#             "none"      — no voice argument; model has a single fixed voice
+LOCAL_MODELS: dict[str, dict] = {
+    "voxtral-4bit": {
+        "hf_id":      "mlx-community/Voxtral-4B-TTS-2603-mlx-4bit",
+        "label":      "Voxtral 4B — 4-bit  (~2.5 GB)",
+        "voice_mode": "preset",
+        "voices":     _VOXTRAL_VOICES,
+    },
+    "voxtral-6bit": {
+        "hf_id":      "mlx-community/Voxtral-4B-TTS-2603-mlx-6bit",
+        "label":      "Voxtral 4B — 6-bit  (~3.5 GB)  ★ recommended",
+        "voice_mode": "preset",
+        "voices":     _VOXTRAL_VOICES,
+    },
+    "voxtral-bf16": {
+        "hf_id":      "mlx-community/Voxtral-4B-TTS-2603-mlx-bf16",
+        "label":      "Voxtral 4B — bf16   (~8.0 GB)",
+        "voice_mode": "preset",
+        "voices":     _VOXTRAL_VOICES,
+    },
+    "kokoro": {
+        "hf_id":      "mlx-community/Kokoro-82M-bf16",
+        "label":      "Kokoro 82M — bf16   (~170 MB)  ★ fast",
+        "voice_mode": "preset",
+        "voices":     _KOKORO_VOICES,
+    },
+    "soprano": {
+        "hf_id":      "mlx-community/Soprano-1.1-80M-bf16",
+        "label":      "Soprano 1.1 80M — bf16  (~160 MB)  ★ fast",
+        "voice_mode": "none",
+        "voices":     _NO_PRESET_VOICES,
+    },
+    "outetts": {
+        "hf_id":      "mlx-community/OuteTTS-1.0-0.6B-fp16",
+        "label":      "OuteTTS 1.0 0.6B — fp16  (~1.2 GB)",
+        "voice_mode": "none",
+        "voices":     _NO_PRESET_VOICES,
+    },
+    "csm-1b": {
+        "hf_id":      "mlx-community/csm-1b",
+        "label":      "CSM 1B              (~2.0 GB)  · voice cloning",
+        "voice_mode": "ref_audio",
+        "voices":     _NO_PRESET_VOICES,
+    },
+    "spark": {
+        "hf_id":      "mlx-community/Spark-TTS-0.5B-bf16",
+        "label":      "Spark TTS 0.5B — bf16  (~1.0 GB)  · voice cloning",
+        "voice_mode": "ref_audio",
+        "voices":     _NO_PRESET_VOICES,
+    },
+    "chatterbox": {
+        "hf_id":      "mlx-community/chatterbox-fp16",
+        "label":      "Chatterbox — fp16   (~0.8 GB)  · voice cloning",
+        "voice_mode": "ref_audio",
+        "voices":     _NO_PRESET_VOICES,
+    },
+    "dia-1.6b": {
+        "hf_id":      "mlx-community/Dia-1.6B-fp16",
+        "label":      "Dia 1.6B — fp16     (~3.2 GB)  · voice cloning",
+        "voice_mode": "ref_audio",
+        "voices":     _NO_PRESET_VOICES,
+    },
+    "qwen3-tts": {
+        "hf_id":      "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-bf16",
+        "label":      "Qwen3-TTS 1.7B — bf16  (~3.4 GB)  · voice cloning",
+        "voice_mode": "ref_audio",
+        "voices":     _NO_PRESET_VOICES,
+    },
+    "ming-omni-0.5b": {
+        "hf_id":      "mlx-community/Ming-omni-tts-0.5B-bf16",
+        "label":      "Ming Omni 0.5B — bf16  (~1.0 GB)  · voice cloning",
+        "voice_mode": "ref_audio",
+        "voices":     _NO_PRESET_VOICES,
+    },
+}
+
+LOCAL_MODEL_DEFAULT = "voxtral-6bit"
+
+# Flat voice list for the default model (backward-compat for callers that
+# imported LOCAL_VOICES before the per-model registry existed).
+LOCAL_VOICES: list[dict] = LOCAL_MODELS[LOCAL_MODEL_DEFAULT]["voices"]
+
+_MIRROR_DIR = Path(__file__).parent / "local_audio_output"
+
+
+def _cli_synthesize_chunk(
+    text: str,
+    voice_id: str,
+    model_id: str,
+    ref_audio_path: str | None = None,
+) -> bytes:
     """Synthesize a single chunk via the mlx_audio CLI subprocess."""
     import sys
     import tempfile
@@ -62,11 +164,16 @@ def _cli_synthesize_chunk(text: str, voice_id: str, model_id: str) -> bytes:
             sys.executable, "-m", "mlx_audio.tts.generate",
             "--model", model_id,
             "--text", text,
-            "--voice", voice_id,
             "--output_path", tmpdir,
             "--file_prefix", "chunk",
             "--audio_format", "wav",
         ]
+        # Only add --voice when the model uses preset voices and one is selected
+        if voice_id and voice_id != "default":
+            cmd += ["--voice", voice_id]
+        # Reference audio for voice-cloning models (optional)
+        if ref_audio_path:
+            cmd += ["--ref_audio", ref_audio_path]
         result = subprocess.run(cmd, capture_output=False)
         if result.returncode != 0:
             raise RuntimeError(f"mlx_audio CLI exited with code {result.returncode}")
@@ -85,11 +192,14 @@ class LocalTTSClient:
     accumulation crash in the Python API, while keeping text short enough
     that the model produces intelligible output.
 
-    model_key: one of "4bit", "6bit", "bf16"
+    model_key: key from LOCAL_MODELS registry (e.g. "voxtral-6bit", "kokoro")
+    ref_audio_path: optional path to a reference audio file for voice-cloning models
     """
 
-    def __init__(self, model_key: str = LOCAL_MODEL_DEFAULT):
-        self._model_id = LOCAL_MODELS.get(model_key, LOCAL_MODELS[LOCAL_MODEL_DEFAULT])
+    def __init__(self, model_key: str = LOCAL_MODEL_DEFAULT, ref_audio_path: str | None = None):
+        info = LOCAL_MODELS.get(model_key, LOCAL_MODELS[LOCAL_MODEL_DEFAULT])
+        self._model_id = info["hf_id"]
+        self._ref_audio_path = ref_audio_path
 
     async def synthesize_chapter(
         self,
@@ -102,7 +212,8 @@ class LocalTTSClient:
         for i, chunk in enumerate(chunks):
             logger.info("Local TTS: chunk %d/%d (%d chars)", i + 1, len(chunks), len(chunk))
             audio = await loop.run_in_executor(
-                None, _cli_synthesize_chunk, chunk, voice_id, self._model_id
+                None, _cli_synthesize_chunk, chunk, voice_id,
+                self._model_id, self._ref_audio_path,
             )
             results.append(audio)
 

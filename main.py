@@ -76,10 +76,33 @@ async def list_voices(x_api_key: str = Header(..., description="Mistral API key"
 @app.get("/api/local-voices")
 async def list_local_voices():
     models = [
-        {"id": k, "label": {"4bit": "4-bit (~2.5 GB)", "6bit": "6-bit (~3.5 GB)", "bf16": "BF16 — unquantized (~8 GB)"}[k]}
-        for k in LOCAL_MODELS
+        {"id": k, "label": info["label"], "voice_mode": info["voice_mode"]}
+        for k, info in LOCAL_MODELS.items()
     ]
-    return {"voices": sorted(LOCAL_VOICES, key=lambda v: v["label"]), "models": models, "default_model": LOCAL_MODEL_DEFAULT}
+    return {"models": models, "default_model": LOCAL_MODEL_DEFAULT}
+
+
+@app.get("/api/local-voices/{model_key}")
+async def list_local_voices_for_model(model_key: str):
+    info = LOCAL_MODELS.get(model_key)
+    if not info:
+        raise HTTPException(status_code=404, detail=f"Unknown model: {model_key}")
+    return {
+        "voices": sorted(info["voices"], key=lambda v: v["label"]),
+        "voice_mode": info["voice_mode"],
+    }
+
+
+@app.post("/api/upload-ref-audio")
+async def upload_ref_audio(file: UploadFile):
+    """Save a reference audio file for local voice-cloning models.
+    Returns the server-side path so it can be passed to /api/generate."""
+    suffix = Path(file.filename or "ref.wav").suffix or ".wav"
+    with tempfile.NamedTemporaryFile(
+        delete=False, suffix=suffix, dir=_output_dir
+    ) as tmp:
+        tmp.write(await file.read())
+        return {"path": tmp.name}
 
 
 class UploadResponse(BaseModel):
@@ -142,7 +165,8 @@ class GenerateRequest(BaseModel):
     job_id: str
     voice_id: str
     mode: str = "api"  # "api" or "local"
-    local_model: str = LOCAL_MODEL_DEFAULT  # "4bit", "6bit", "bf16"
+    local_model: str = LOCAL_MODEL_DEFAULT
+    local_ref_audio: str | None = None  # path to reference audio for cloning models
     chapter_indices: list[int] | None = None  # None means all chapters
 
 
@@ -179,7 +203,8 @@ async def generate(
     total_chunks = sum(len(ch.chunks) for ch in chapters)
     update_progress(req.job_id, status="processing", total_chunks=total_chunks, total_chapters=len(chapters))
     background_tasks.add_task(
-        _run_generation, req.job_id, chapters, req.voice_id, req.mode, req.local_model, x_api_key, job.book_title
+        _run_generation, req.job_id, chapters, req.voice_id, req.mode,
+        req.local_model, req.local_ref_audio, x_api_key, job.book_title,
     )
     return {"status": "started"}
 
@@ -190,13 +215,18 @@ async def _run_generation(
     voice_id: str,
     mode: str,
     local_model: str,
+    local_ref_audio: str | None,
     api_key: str | None,
     book_title: str,
 ):
     workdir = _output_dir / job_id
     workdir.mkdir(parents=True, exist_ok=True)
 
-    client = LocalTTSClient(model_key=local_model) if mode == "local" else TTSClient(api_key=api_key)
+    client = (
+        LocalTTSClient(model_key=local_model, ref_audio_path=local_ref_audio)
+        if mode == "local"
+        else TTSClient(api_key=api_key)
+    )
     chunk_ext = "wav" if mode == "local" else "mp3"
     chapter_data: list[tuple[str, str, float]] = []
 
