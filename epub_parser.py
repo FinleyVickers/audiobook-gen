@@ -267,10 +267,25 @@ def chunk_text(text: str, max_chars: int = 480) -> list[str]:
     return chunks
 
 
+# Titles and abbreviations whose trailing period is NOT a sentence boundary.
+_ABBREV_RE = re.compile(
+    r"\b(Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|Rev|Gen|Sgt|Cpl|Pvt|Lt|Col|Maj|Capt|"
+    r"Gov|Pres|Sen|Rep|Dept|vs|etc|approx|est|no|vol|pp|"
+    r"Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.",
+    re.IGNORECASE,
+)
+# Single uppercase initial: "J. Smith", "U.S.A.", etc.
+_INITIAL_RE = re.compile(r"\b([A-Z])\.")
+# Placeholder: null byte is stripped by _clean_text so it never appears in input.
+_DOT_PLACEHOLDER = "\x00"
+
+
 def _iter_sentences(text: str):
-    """Yield sentences split at .  !  ? followed by whitespace."""
-    for s in re.split(r"(?<=[.!?])\s+", text):
-        s = s.strip()
+    """Yield sentences split at .  !  ? — but not at abbreviations or initials."""
+    protected = _ABBREV_RE.sub(lambda m: m.group(1) + _DOT_PLACEHOLDER, text)
+    protected = _INITIAL_RE.sub(lambda m: m.group(1) + _DOT_PLACEHOLDER, protected)
+    for s in re.split(r"(?<=[.!?])\s+", protected):
+        s = s.replace(_DOT_PLACEHOLDER, ".").strip()
         if s:
             yield s
 
