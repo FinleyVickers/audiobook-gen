@@ -51,15 +51,29 @@ def parse_epub(file_path: str) -> list[Chapter]:
 
         # Replace heading tags with their text as a sentence so the narrator
         # gets a natural pause before body text begins. Convert Roman numerals
-        # within headings to spoken words.
+        # within headings to spoken words (including single-letter I/V/X which
+        # are unambiguously chapter numbers in this context, not pronouns).
         for htag in soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]):
             heading_text = htag.get_text(separator=" ", strip=True)
             if heading_text:
-                heading_text = re.sub(
-                    r"\b(M{0,4}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3}))\b",
-                    lambda m: _roman_to_words(m.group(1)),
-                    heading_text,
-                )
+                # If the entire heading is a Roman numeral (e.g. "I", "XIV"),
+                # convert it directly — single I/V/X are chapter numbers here.
+                pure_roman = re.match(r"^[IVXLCDM]+$", heading_text.strip(), re.IGNORECASE)
+                if pure_roman:
+                    n = _roman_to_int(heading_text.strip().upper())
+                    if n > 0:
+                        heading_text = _int_to_words(n)
+                else:
+                    # Mixed heading — convert multi-char Roman numerals only,
+                    # leaving single-letter I/V/X to avoid pronoun collisions.
+                    heading_text = re.sub(
+                        r"\b(M{0,4}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3}))\b",
+                        lambda m: _roman_to_words(m.group(1)),
+                        heading_text,
+                    )
+                # Strip any existing trailing punctuation so we always end with
+                # exactly one period, giving the narrator a clean pause.
+                heading_text = heading_text.rstrip(".!? \t")
                 htag.replace_with(f"{heading_text}. ")
             else:
                 htag.decompose()
