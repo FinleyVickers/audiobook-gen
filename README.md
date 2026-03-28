@@ -5,7 +5,6 @@ Convert epub ebooks to M4B audiobooks using [Mistral Voxtral TTS](https://docs.m
 ## Features
 
 - Upload any `.epub` file and get a fully chaptered `.m4b` audiobook
-- 8 preset voices (English, French, Portuguese, Hindi, Arabic)
 - Real-time progress tracking during generation
 - Chapter markers navigable in Apple Books, VLC, etc.
 - Cost estimate before you commit to generating
