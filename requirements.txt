@@ -1,3 +1,4 @@
+# Web app core dependencies (installed automatically by uv sync)
 fastapi
 uvicorn[standard]
 python-dotenv
@@ -6,6 +7,15 @@ beautifulsoup4
 httpx
 lxml
 python-multipart
-# Optional: local inference on Apple Silicon (requires macOS + MLX)
-# Voxtral support is not yet in a PyPI release — install from GitHub:
-# pip install git+https://github.com/Blaizzy/mlx-audio.git soundfile tiktoken misaki num2words
+
+# ── Local inference (Apple Silicon) ──────────────────────────────────────────
+# Use uv for full dependency resolution (spacy, misaki, etc. are pulled in):
+#
+#   uv sync --extra local
+#
+# Then run the server with:
+#   uv run uvicorn main:app --reload
+#
+# If you prefer plain pip, install manually:
+#   pip install git+https://github.com/Blaizzy/mlx-audio.git \
+#               soundfile tiktoken "misaki[en]" num2words spacy

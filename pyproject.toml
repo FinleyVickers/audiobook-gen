@@ -1,0 +1,27 @@
+[project]
+name = "audiobook-gen"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "python-dotenv",
+    "ebooklib",
+    "beautifulsoup4",
+    "httpx",
+    "lxml",
+    "python-multipart",
+]
+
+[tool.uv.sources]
+mlx-audio = { git = "https://github.com/Blaizzy/mlx-audio.git" }
+
+[project.optional-dependencies]
+local = [
+    "mlx-audio",
+    "soundfile",
+    "tiktoken",
+    "misaki[en]",
+    "num2words",
+    "spacy",
+]
