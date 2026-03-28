@@ -19,7 +19,7 @@ from job_manager import (
     progress_stream,
     update_progress,
 )
-from tts_client import TTSClient
+from tts_client import LOCAL_VOICES, LocalTTSClient, TTSClient
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
@@ -49,6 +49,11 @@ async def list_voices(x_api_key: str = Header(..., description="Mistral API key"
     finally:
         await client.close()
     return {"voices": voices}
+
+
+@app.get("/api/local-voices")
+async def list_local_voices():
+    return {"voices": sorted(LOCAL_VOICES, key=lambda v: v["label"])}
 
 
 class UploadResponse(BaseModel):
@@ -110,6 +115,7 @@ async def upload_epub(file: UploadFile):
 class GenerateRequest(BaseModel):
     job_id: str
     voice_id: str
+    mode: str = "api"  # "api" or "local"
     chapter_indices: list[int] | None = None  # None means all chapters
 
 
@@ -117,8 +123,11 @@ class GenerateRequest(BaseModel):
 async def generate(
     req: GenerateRequest,
     background_tasks: BackgroundTasks,
-    x_api_key: str = Header(..., description="Mistral API key"),
+    x_api_key: str | None = Header(None, description="Mistral API key (required for API mode)"),
 ):
+    if req.mode == "api" and not x_api_key:
+        raise HTTPException(status_code=422, detail="X-Api-Key header is required for API mode")
+
     job = get_job(req.job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -143,7 +152,7 @@ async def generate(
     total_chunks = sum(len(ch.chunks) for ch in chapters)
     update_progress(req.job_id, status="processing", total_chunks=total_chunks, total_chapters=len(chapters))
     background_tasks.add_task(
-        _run_generation, req.job_id, chapters, req.voice_id, x_api_key, job.book_title
+        _run_generation, req.job_id, chapters, req.voice_id, req.mode, x_api_key, job.book_title
     )
     return {"status": "started"}
 
@@ -152,13 +161,15 @@ async def _run_generation(
     job_id: str,
     chapters: list[Chapter],
     voice_id: str,
-    api_key: str,
+    mode: str,
+    api_key: str | None,
     book_title: str,
 ):
     workdir = _output_dir / job_id
     workdir.mkdir(parents=True, exist_ok=True)
 
-    client = TTSClient(api_key=api_key)
+    client = LocalTTSClient() if mode == "local" else TTSClient(api_key=api_key)
+    chunk_ext = "wav" if mode == "local" else "mp3"
     chapter_data: list[tuple[str, str, float]] = []
 
     try:
@@ -178,12 +189,12 @@ async def _run_generation(
             async def on_progress(_: int, jid=job_id):
                 increment_chunks(jid)
 
-            mp3_chunks = await client.synthesize_chapter(
+            audio_chunks = await client.synthesize_chapter(
                 chapter.chunks, voice_id, on_progress=on_progress
             )
 
             aac_path = str(workdir / f"chapter_{idx:04d}.aac")
-            duration = concat_chunks_to_chapter(mp3_chunks, aac_path, str(chapter_workdir))
+            duration = concat_chunks_to_chapter(audio_chunks, aac_path, str(chapter_workdir), chunk_ext)
             chapter_data.append((chapter.title, aac_path, duration))
 
         # Build final M4B

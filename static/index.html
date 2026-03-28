@@ -466,7 +466,7 @@
   <header>
     <span class="masthead-glyph">❧ ✦ ❧</span>
     <h1>Audiobook Generator</h1>
-    <p class="subtitle">Converts written works to spoken word<br>using Mistral Voxtral text-to-speech</p>
+    <p class="subtitle">Converts written works to spoken word<br>via Mistral API or local mlx-audio inference</p>
   </header>
 
   <div class="rule">§</div>
@@ -480,8 +480,22 @@
     </div>
 
     <div class="field">
+      <label>Mode</label>
+      <div style="display:flex;gap:1.5rem;padding:0.3rem 0 0.75rem;">
+        <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.875rem;color:var(--ink);text-transform:none;letter-spacing:0;margin-bottom:0;">
+          <input type="radio" name="mode" value="api" checked onchange="onModeChange()" style="accent-color:var(--ink);cursor:pointer;" />
+          Mistral API
+        </label>
+        <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.875rem;color:var(--ink);text-transform:none;letter-spacing:0;margin-bottom:0;">
+          <input type="radio" name="mode" value="local" onchange="onModeChange()" style="accent-color:var(--ink);cursor:pointer;" />
+          Local <span style="font-family:'Courier New',monospace;font-size:0.7rem;color:var(--ink-dim);">(mlx-audio · Apple Silicon)</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="field" id="api-key-field">
       <label for="api-key">Mistral API Key</label>
-      <input type="password" id="api-key" placeholder="Enter key to summon voices…" autocomplete="off" />
+      <input type="password" id="api-key" placeholder="Enter key to load voices…" autocomplete="off" />
     </div>
 
     <div class="field">
@@ -520,7 +534,7 @@
     </div>
 
     <p class="book-title" id="book-title-label"></p>
-    <p class="cost-line" id="cost-label"></p>
+    <p class="cost-line" id="cost-label" style="display:none;"></p>
 
     <div class="chapter-controls">
       <span class="ch-count" id="selected-count"></span>
@@ -590,21 +604,26 @@
   let voiceLoadTimer = null;
   let chapterData = [];
 
-  // Restore API key from localStorage
-  const savedKey = localStorage.getItem('mistral_api_key');
-  if (savedKey) {
-    document.getElementById('api-key').value = savedKey;
+  function getMode() {
+    return document.querySelector('input[name="mode"]:checked').value;
   }
 
-  // Load voices on key change (debounced)
-  document.getElementById('api-key').addEventListener('input', e => {
-    const key = e.target.value.trim();
-    localStorage.setItem('mistral_api_key', key);
-    clearTimeout(voiceLoadTimer);
-    if (key.length > 10) {
-      voiceLoadTimer = setTimeout(() => loadVoices(key), 600);
+  function onModeChange() {
+    const mode = getMode();
+    document.getElementById('api-key-field').style.display = mode === 'api' ? '' : 'none';
+    if (mode === 'local') {
+      loadLocalVoices();
+    } else {
+      const key = document.getElementById('api-key').value.trim();
+      if (key.length > 10) loadVoices(key);
+      else {
+        const select = document.getElementById('voice-select');
+        select.innerHTML = '<option value="">— enter API key to load voices —</option>';
+        select.disabled = true;
+        document.getElementById('voice-status').textContent = '';
+      }
     }
-  });
+  }
 
   // --- Load voices from Mistral API ---
   async function loadVoices(apiKey) {
@@ -619,9 +638,7 @@
     select.disabled = true;
     status.textContent = '(loading…)';
     try {
-      const res = await fetch('/api/voices', {
-        headers: { 'X-Api-Key': apiKey }
-      });
+      const res = await fetch('/api/voices', { headers: { 'X-Api-Key': apiKey } });
       const data = await res.json();
       if (!res.ok) {
         status.textContent = '(error)';
@@ -645,10 +662,38 @@
     }
   }
 
-  // Auto-load if key already saved
-  if (savedKey && savedKey.length > 10) {
-    loadVoices(savedKey);
+  // --- Load local voices ---
+  async function loadLocalVoices() {
+    const select = document.getElementById('voice-select');
+    const status = document.getElementById('voice-status');
+    select.disabled = true;
+    status.textContent = '(loading…)';
+    try {
+      const res = await fetch('/api/local-voices');
+      const data = await res.json();
+      select.innerHTML = data.voices
+        .map(v => `<option value="${v.id}">${v.label}</option>`)
+        .join('');
+      select.disabled = false;
+      status.textContent = `(${data.voices.length} available)`;
+    } catch {
+      status.textContent = '(network error)';
+      select.innerHTML = '<option value="">Failed to load voices</option>';
+    }
   }
+
+  // Restore API key and auto-load voices
+  const savedKey = localStorage.getItem('mistral_api_key');
+  if (savedKey) document.getElementById('api-key').value = savedKey;
+  if (savedKey && savedKey.length > 10) loadVoices(savedKey);
+
+  // Load voices on API key change (debounced)
+  document.getElementById('api-key').addEventListener('input', e => {
+    const key = e.target.value.trim();
+    localStorage.setItem('mistral_api_key', key);
+    clearTimeout(voiceLoadTimer);
+    if (key.length > 10) voiceLoadTimer = setTimeout(() => loadVoices(key), 600);
+  });
 
   // --- File input ---
   const fileInput = document.getElementById('file-input');
@@ -736,12 +781,17 @@
 
   function updateCostBadge() {
     const checked = getSelectedIndices();
-    const selectedChars = chapterData
-      .filter(ch => checked.includes(ch.index))
-      .reduce((sum, ch) => sum + ch.chars, 0);
-    const cost = (selectedChars / 1000) * 0.016;
-    document.getElementById('cost-label').textContent =
-      `${selectedChars.toLocaleString()} characters  ·  est. $${cost.toFixed(4)}`;
+    const costEl = document.getElementById('cost-label');
+    if (getMode() === 'api') {
+      const selectedChars = chapterData
+        .filter(ch => checked.includes(ch.index))
+        .reduce((sum, ch) => sum + ch.chars, 0);
+      const cost = (selectedChars / 1000) * 0.016;
+      costEl.textContent = `${selectedChars.toLocaleString()} characters  ·  est. $${cost.toFixed(4)}`;
+      costEl.style.display = '';
+    } else {
+      costEl.style.display = 'none';
+    }
     document.getElementById('selected-count').textContent =
       `${checked.length} of ${chapterData.length} chapters`;
     document.getElementById('generate-btn').disabled = checked.length === 0;
@@ -761,29 +811,31 @@
 
   // --- Generate ---
   async function startGeneration() {
+    const mode = getMode();
     const apiKey = document.getElementById('api-key').value.trim();
-    if (!apiKey) {
+    if (mode === 'api' && !apiKey) {
       document.getElementById('api-key').focus();
       alert('Please enter your Mistral API key.');
       return;
     }
-    localStorage.setItem('mistral_api_key', apiKey);
+    if (apiKey) localStorage.setItem('mistral_api_key', apiKey);
 
     const voiceId = document.getElementById('voice-select').value;
     const btn = document.getElementById('generate-btn');
     btn.disabled = true;
     btn.textContent = 'Starting…';
 
+    const headers = { 'Content-Type': 'application/json' };
+    if (mode === 'api') headers['X-Api-Key'] = apiKey;
+
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Api-Key': apiKey,
-        },
+        headers,
         body: JSON.stringify({
           job_id: currentJobId,
           voice_id: voiceId,
+          mode,
           chapter_indices: getSelectedIndices(),
         }),
       });

@@ -9,14 +9,14 @@ logger = logging.getLogger(__name__)
 
 
 def concat_chunks_to_chapter(
-    mp3_chunks: list[bytes], output_path: str, workdir: str
+    chunks: list[bytes], output_path: str, workdir: str, chunk_ext: str = "mp3"
 ) -> float:
-    """Concat MP3 chunks and transcode to AAC. Returns duration in seconds."""
+    """Concat audio chunks and transcode to AAC. Returns duration in seconds."""
     chunk_files: list[str] = []
 
     # Write each chunk to a temp file
-    for i, chunk in enumerate(mp3_chunks):
-        chunk_path = os.path.join(workdir, f"chunk_{i:04d}.mp3")
+    for i, chunk in enumerate(chunks):
+        chunk_path = os.path.join(workdir, f"chunk_{i:04d}.{chunk_ext}")
         with open(chunk_path, "wb") as f:
             f.write(chunk)
         chunk_files.append(chunk_path)

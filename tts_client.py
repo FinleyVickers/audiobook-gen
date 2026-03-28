@@ -16,6 +16,102 @@ MISTRAL_VOICES_URL = "https://api.mistral.ai/v1/audio/voices"
 # Rate limits: 6 requests/second, 2,000,000 tokens/minute
 _RATE_LIMIT_RPS = 6
 
+# ── Local (mlx-audio) ────────────────────────────────────────────────────────
+
+LOCAL_MODEL_ID = "mlx-community/Voxtral-4B-TTS-2603-4bit"
+
+# Preset voices bundled with the Voxtral-4B local model.
+LOCAL_VOICES: list[dict] = [
+    {"id": "af_bella",    "label": "Bella — EN — Female"},
+    {"id": "af_nicole",   "label": "Nicole — EN — Female"},
+    {"id": "af_sarah",    "label": "Sarah — EN — Female"},
+    {"id": "af_sky",      "label": "Sky — EN — Female"},
+    {"id": "am_adam",     "label": "Adam — EN — Male"},
+    {"id": "am_michael",  "label": "Michael — EN — Male"},
+    {"id": "bf_emma",     "label": "Emma — EN-GB — Female"},
+    {"id": "bf_isabella", "label": "Isabella — EN-GB — Female"},
+    {"id": "bm_george",   "label": "George — EN-GB — Male"},
+    {"id": "bm_lewis",    "label": "Lewis — EN-GB — Male"},
+    {"id": "ff_siwis",    "label": "Siwis — FR — Female"},
+    {"id": "hf_alpha",    "label": "Alpha — HI — Female"},
+    {"id": "hm_omega",    "label": "Omega — HI — Male"},
+    {"id": "if_sara",     "label": "Sara — IT — Female"},
+    {"id": "im_nicola",   "label": "Nicola — IT — Male"},
+    {"id": "jf_alpha",    "label": "Alpha — JA — Female"},
+    {"id": "jm_kumo",     "label": "Kumo — JA — Male"},
+    {"id": "pf_dora",     "label": "Dora — PT — Female"},
+    {"id": "pm_alex",     "label": "Alex — PT — Male"},
+    {"id": "zf_xiaobei",  "label": "Xiaobei — ZH — Female"},
+    {"id": "zm_yunjian",  "label": "Yunjian — ZH — Male"},
+]
+
+# Module-level singleton — loaded once, reused across all requests.
+_local_model = None
+_local_model_lock: asyncio.Lock | None = None
+
+
+def _get_lock() -> asyncio.Lock:
+    global _local_model_lock
+    if _local_model_lock is None:
+        _local_model_lock = asyncio.Lock()
+    return _local_model_lock
+
+
+def _load_and_synthesize(text: str, voice_id: str) -> bytes:
+    """Synchronous: load model (once) and synthesize a WAV chunk."""
+    import io
+
+    import numpy as np
+    import soundfile as sf
+
+    global _local_model
+    if _local_model is None:
+        from mlx_audio.tts.utils import load
+        logger.info("Loading local Voxtral model: %s", LOCAL_MODEL_ID)
+        _local_model = load(LOCAL_MODEL_ID)
+
+    parts: list[np.ndarray] = []
+    for segment in _local_model.generate(text=text, voice=voice_id):
+        arr = np.asarray(segment).flatten()
+        if arr.size:
+            parts.append(arr)
+
+    audio = np.concatenate(parts).astype(np.float32) if parts else np.zeros(0, dtype=np.float32)
+    buf = io.BytesIO()
+    sf.write(buf, audio, samplerate=24000, format="WAV", subtype="PCM_16")
+    buf.seek(0)
+    return buf.read()
+
+
+class LocalTTSClient:
+    """TTS client using mlx-audio for on-device inference (Apple Silicon)."""
+
+    def __init__(self):
+        # Sequential — MLX model is not safe for concurrent inference
+        self._semaphore = asyncio.Semaphore(1)
+
+    async def synthesize_chunk(self, text: str, voice_id: str) -> bytes:
+        loop = asyncio.get_event_loop()
+        async with _get_lock():
+            return await loop.run_in_executor(None, _load_and_synthesize, text, voice_id)
+
+    async def synthesize_chapter(
+        self,
+        chunks: list[str],
+        voice_id: str,
+        on_progress: Callable[[int], Awaitable[None]] | None = None,
+    ) -> list[bytes]:
+        results: list[bytes] = []
+        for chunk in chunks:
+            audio = await self.synthesize_chunk(chunk, voice_id)
+            results.append(audio)
+            if on_progress:
+                await on_progress(1)
+        return results
+
+    async def close(self):
+        pass  # model is a module-level singleton; keep it alive
+
 
 class _RateLimiter:
     """Sliding-window rate limiter: max `rate` calls per `period` seconds."""
